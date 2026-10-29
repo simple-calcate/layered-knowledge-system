@@ -1,0 +1,110 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.higher.double.001",
+  "node_id": "bp.higher.double",
+  "type": "derivation",
+  "difficulty": 4,
+  "stem": "设 $f: \\mathbb{R}^n \\to \\mathbb{R}$ 二阶可微，要计算 Hessian-向量积 $H v$，其中 $H = \\nabla^2 f(x)$，$v$ 是给定的方向。\n\n(1) 写出一个恒等式，把 $Hv$ 转化为「某个标量函数的梯度」，从而不必显式构造 $H$。\n(2) 说明它需要的 landscape 与具体组合方式（前向-套-反向，或反向-套-前向），以及不同组合的代价差异。\n(3) 求 Hadamard 积味道的这个做法的时间代价与 $n$ 的关系；显式构造完整 $H$ 又是多少？\n(4) 若 $f$ 是一个含 ReLU 的网络，这套方法还成立吗？",
+  "hints": [
+    "把 ⟨∇f(x), v⟩ 看成一个标量值函数 φ(x)，对它求导",
+    "第一次求梯度时，那趟反向过程本身是否被 tape 记录了？"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "关键恒等式：Hv = ∂/∂x ⟨∇f(x), v⟩，即 Hv 是标量函数 φ(x)=⟨∇f(x), v⟩ 的梯度",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "因此只要能求出 φ 的梯度即可，而 φ 是标量输出，一次反向模式就够了",
+        "depends_on": [
+          "s1"
+        ]
+      },
+      {
+        "id": "s3",
+        "claim": "实现前提：第一次求 ∇f 的那趟反向过程必须本身被记录在 tape 上，即对 tape 再套一层 tape（嵌套微分）",
+        "depends_on": [
+          "s2"
+        ]
+      },
+      {
+        "id": "s4",
+        "claim": "若 ∇f 由数值差分、手工推导或 stop_gradient 截断得到，则二阶信息无从构造",
+        "depends_on": [
+          "s3"
+        ]
+      },
+      {
+        "id": "s5",
+        "claim": "代价对比：一次 VJP 约 2~4 倍前向；再嵌套一次仍是常数倍，与 n 无关；显式 Hessian 需要 n 次，Θ(n) 倍",
+        "depends_on": [
+          "s2"
+        ]
+      },
+      {
+        "id": "s6",
+        "claim": "ReLU 网络分片线性，二阶导处处为 0 且在断点不存在，所谓 Hessian 在通常意义上不成立",
+        "depends_on": []
+      }
+    ],
+    "terminal_steps": [
+      "s2",
+      "s5",
+      "s6"
+    ]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "恒等式 Hv = ∇⟨∇f, v⟩ 的数值校验",
+      "code": "import random\nrandom.seed(9)\nn = 4\nA = [[random.uniform(-1, 1) for _ in range(n)] for _ in range(n)]\nfor i in range(n):\n    for j in range(n):\n        A[j][i] = A[i][j]\n\ndef grad(p):\n    return [sum(A[i][j] * p[j] for j in range(n)) for i in range(n)]\n\ndef phi(p):\n    g = grad(p)\n    return sum(g[i] * v[i] for i in range(n))\n\nx = [0.31, -0.77, 0.52, 0.14]\nv = [1.0, -0.4, 0.7, 0.2]\n\nHv_true = [sum(A[i][j] * v[j] for j in range(n)) for i in range(n)]\n\neps = 1e-6\nHv_num = []\nfor j in range(n):\n    xp = list(x); xp[j] += eps\n    xm = list(x); xm[j] -= eps\n    Hv_num.append((phi(xp) - phi(xm)) / (2 * eps))\n\nfor i in range(n):\n    assert abs(Hv_true[i] - Hv_num[i]) < 1e-4, (i, Hv_true[i], Hv_num[i])\n\nassert max(abs(a - b) for a, b in zip(Hv_true, Hv_num)) < 1e-4"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_intuition",
+      "style": "物理直觉法",
+      "register": "把 Hv 读作『梯度沿某个方向的走向』",
+      "covers_steps": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "content": "先不要去碰那个 $n \\times n$ 的矩阵。问自己一句：$Hv$ 在物理上表示什么？\n\n它是**梯度沿着 $v$ 方向移动时会怎么变**。梯度本身是个向量场，给它乘上一个方向 $v$，得到的就是该向量场在 $v$ 上的方向导数。\n\n既然是方向导数，就可以这样构造：先把梯度投影到 $v$ 上得到一个标量 $\\varphi(x) = \\langle \\nabla f(x),\\, v \\rangle$，再问这个标量对 $x$ 怎么变。于是\n$$Hv = \\frac{\\partial}{\\partial x} \\langle \\nabla f(x),\\, v \\rangle.$$\n\n$\\varphi$ 的输出是标量，对它求导只要再跑一次反向模式。**从头到尾没有<｜hy_place▁holder▁no▁813｜>任何完整矩阵。**\n\n代价上的差别：跑一次 VJP 大约是前向的 2 到 4 倍，再套一层也不过再乘一个常数，与 $n$ 完全无关。而要把 $H$ 的每一列都算出来，得对 $n$ 个坐标方向各来一次，成本直接乘以 $n$。参数量以百万计时，这就是能与不能的分界。\n\n最后一点坑：这套做法要求**第一次求梯度时那趟反向过程本身也被录进 tape**。如果梯度是你手推的公式、或者用了差分、或者在图上调用了 stop_gradient，那这趟过程对引擎来说只是一堆已经算完的数字，没有可回朔的结构，二阶信息彻底断掉。\n\n至于 ReLU 网络：它是分片的线性函数，二阶导在任何线性区域内都是 0，在折点处则不存在。所以严格说 Hessian 无从谈起，只能谈 piecewise 意义上的退化情形。"
+    },
+    {
+      "variant_id": "v2_formal",
+      "style": "形式化推导法",
+      "register": "从定义出发逐步 algebraically 推",
+      "covers_steps": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "content": "记梯度映射 $g(x) = \\nabla f(x)$，其雅可比即 $J_g(x) = \\nabla^2 f(x) = H$。\n\n构造标量函数\n$$\\varphi(x) \\triangleq \\langle g(x),\\, v \\rangle = \\sum_i g_i(x)\\, v_i.$$\n\n对 $x_j$ 求偏导，注意 $v$ 与 $x$ 无关：\n$$\\frac{\\partial \\varphi}{\\partial x_j} = \\sum_i v_i \\frac{\\partial g_i}{\\partial x_j} = \\sum_i v_i \\, \\frac{\\partial^2 f}{\\partial x_j \\, \\partial x_i} = \\sum_i H_{ji} \\, v_i = (Hv)_j,$$\n其中最后一步用到 $H$ 的对称性。于是得到恒等式\n$$H v = \\nabla_x \\, \\langle \\nabla f(x),\\, v \\rangle.$$\n\n**组合方式的代价差异**。上式右端的一次 VJP 内部，需要先求出 $g(x) = \\nabla f(x)$，而这本身又是一次 VJP。因此嵌套有两种顺序：\n\n- **反向-套-反向**（reverse-over-reverse）：两次都用反向，代价約 2 倍左右的 coe 倍的前向。\n- **前向-套-反向**（forward-over-reverse）：外层用前向模式直接传播扰动向量 $v$，内层用反向模式求 $g$。求单个 $Hv$ 时这通常更省。\n\n两者共同的前提是 $g$ 的计算过程被 tape 记录，即**嵌套微分**。若 $g$ 由数值差分给出或被 stop_gradient 截断，则 $J_g$ 无从构造。\n\n**代价**：单次 VJP 与一次前向同阶，故 $\\mathrm{cost}(Hv) = O(\\mathrm{cost}(f))$，与 $n$ 无关；显式构造 $H$ 需 $n$ 次种子，为 $n \\cdot O(\\mathrm{cost}(f))$。\n\n**光滑性**：$f$ 需二阶可微。ReLU 网络分片线性，其弱二阶导在每个线性区为零、在折点处集中，通常意义下的 Hessian 不成立。"
+    },
+    {
+      "variant_id": "v3_verification",
+      "style": "数值校验法",
+      "register": "用一个具体函数把恒等式两边算出来对照",
+      "covers_steps": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "content": "取 $f(x) = \\frac{1}{2} x^\\top A x$，$A$ 对称。此时 $\\nabla f = Ax$、$H = A$，于是真值就是 $Av$——一个可以用来对照的标准答案。\n\n```python\nimport random\nrandom.seed(9)\nn = 4\nA = [[random.uniform(-1, 1) for _ in range(n)] for _ in range(n)]\nfor i in range(n):\n    for j in range(n):\n        A[j][i] = A[i][j]        # 对称化\n\ndef grad(x):\n    return [sum(A[i][j] * x[j] for j in range(n)) for i in range(n)]\n\nx = [0.3, -0.8, 0.5, 0.1]\nv = [1.0, -0.4, 0.7, 0.2]\nHv_true = [sum(A[i][j] * v[j] for j in range(n)) for i in range(n)]\n\n# 用恒等式：对 φ(x) = <∇f(x), v> 沿 v 方向做差分\neps = 1e-4\nphi = lambda p: sum(grad(p)[i] * v[i] for i in range(n))\nxp = [x[i] + eps * v[i] for i in range(n)]\nxm = [x[i] - eps * v[i] for i in range(n)]\nHv_num = [None] * n\nfor j in range(n):\n    ep = list(x); ep[j] += eps\n    em = list(x); em[j] -= eps\n    Hv_num[j] = (phi(ep) - phi(em)) / (2 * eps)\n```\n\n两组数对齐，说明「对投影后的标量求梯度」确实还原出了 $Hv$，而且**全程没有出现任何二阶 ash 的数组**。把 $A$ 换成 1000 维，代码复杂度完全不变，只是向量变长。\n\n反过来想：若要显式拼出 $H$，就得对 $e_1,\\dots,e_n$ 每一个坐标方向重复一次上述过程，成本乘以 $n$。这正是所有二阶优化方法（共轭梯度、拟牛顿、K-FAC）从不显式构造 Hessian 的原因——它们只需要 $Hv$ 这个黑盒。\n\n最后提醒一句：这段代码之所以能跑，是因为 `grad` 是**由 $A$ 解析给出的、对 $x$ 可微的函数**。若换成 ReLU 网路，`grad` 是分片常数，上述差分处处为 0，恒等式退化——不是公式错了，而是 $H$ 本身在那个函数上就不存在。"
+    }
+  ]
+}

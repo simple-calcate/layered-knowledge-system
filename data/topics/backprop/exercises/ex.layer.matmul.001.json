@@ -1,0 +1,77 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.layer.matmul.001",
+  "node_id": "bp.layer.matmul",
+  "type": "derivation",
+  "difficulty": 3,
+  "stem": "已知前向计算为矩阵乘法 $Y = XW + b$，其中 $X$ 是 $(B, D)$ 矩阵，$W$ 是 $(D, M)$ 矩阵，$b$ 沿批维度广播。损失函数为 $L$，已知输出端回传梯度 $\\bar{Y} = \\partial L / \\partial Y$。\n\n求 $\\bar{W}$、$\\bar{X}$、$\\bar{b}$，并写出推导依据。要求说明：**为什么只能写成这个形式，不能是它的转置或逐元素乘积**。",
+  "hints": [
+    "先看目标对象的形状，梯度必须和它求导的对象同形",
+    "手头只有 (B,D) 与 (B,M) 两块料，凑出 (D,M) 的线性乘法有几种拼法？"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "三个已被假定为事实的尺寸：X 是 (B,D)，W 是 (D,M)，Y_bar 是 (B,M)",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "梯度必须与求导对象同形：W_bar 是 (D,M)，X_bar 是 (B,D)，b_bar 是 (M,)",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "要使中间维相消，唯一可行的线性乘法是把 X 转置后左乘 Y_bar：先得到 Xᵀ 的 (D,B)",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s4",
+        "claim": "得到三个梯度：W_bar = Xᵀ Y_bar，X_bar = Y_bar Wᵀ，b_bar = 沿批维度求和",
+        "depends_on": ["s3"]
+      },
+      {
+        "id": "s5",
+        "claim": "物理含义是批内样本梯度的累加：每个样本贡献一次外积 xᵢ ȳᵢᵀ，批量把它们加起来",
+        "depends_on": ["s4"]
+      },
+      {
+        "id": "s6",
+        "claim": "逐元素乘积要求两因子同形，(B,D) 与 (B,M) 不同形，直接被否定",
+        "depends_on": ["s2"]
+      }
+    ],
+    "terminal_steps": ["s4", "s6"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "数值差分校验三条梯度公式",
+      "code": "import random\nrandom.seed(11)\nB, D, M = 2, 3, 2\n\ndef matmul(A, Bc):\n    return [[sum(A[i][k] * Bc[k][j] for k in range(len(Bc))) for j in range(len(Bc[0]))] for i in range(len(A))]\n\ndef transpose(A):\n    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]\n\ndef dot_all(A, Bc):\n    return sum(A[i][j] * Bc[i][j] for i in range(len(A)) for j in range(len(A[0])))\n\nX = [[random.uniform(-1, 1) for _ in range(D)] for _ in range(B)]\nW = [[random.uniform(-1, 1) for _ in range(M)] for _ in range(D)]\nY_bar = [[random.uniform(-1, 1) for _ in range(M)] for _ in range(B)]\n\nW_bar = matmul(transpose(X), Y_bar)\nX_bar = matmul(Y_bar, transpose(W))\nb_bar = [sum(Y_bar[i][j] for i in range(B)) for j in range(M)]\n\nh = 1e-6\ndef surrogate(dW=None, dX=None, db=None):\n    W2 = [row[:] for row in W]\n    X2 = [row[:] for row in X]\n    if dW:\n        i, j, v = dW\n        W2[i][j] += v\n    if dX:\n        i, j, v = dX\n        X2[i][j] += v\n    P = matmul(X2, W2)\n    off = db if db else [0.0] * M\n    return dot_all([[P[i][j] + off[j] for j in range(M)] for i in range(B)], Y_bar)\n\nfor i in range(D):\n    for j in range(M):\n        num = (surrogate(dW=(i, j, h)) - surrogate(dW=(i, j, -h))) / (2 * h)\n        assert abs(num - W_bar[i][j]) < 1e-4, (num, W_bar[i][j])\nfor i in range(B):\n    for j in range(D):\n        num = (surrogate(dX=(i, j, h)) - surrogate(dX=(i, j, -h))) / (2 * h)\n        assert abs(num - X_bar[i][j]) < 1e-4, (num, X_bar[i][j])\nfor j in range(M):\n    plus = [h if k == j else 0.0 for k in range(M)]\n    minus = [-h if k == j else 0.0 for k in range(M)]\n    num = (surrogate(db=plus) - surrogate(db=minus)) / (2 * h)\n    assert abs(num - b_bar[j]) < 1e-4, (num, b_bar[j])\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_dimension",
+      "style": "维度匹配法",
+      "register": "只靠形状信息就把答案逼出来",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "先把手头的形状摆出来：$X$ 是 $(B,D)$，$W$ 是 $(D,M)$，$\\bar{Y}$ 是 $(B,M)$。\n\n目标形状由求导对象决定：$\\bar{W}$ 必须是 $(D,M)$，$\\bar{X}$ 必须是 $(B,D)$，$\\bar{b}$ 必须是 $(M,)$。\n\n要凑出 $(D,M)$，只能用乘法让相邻维相消。把 $X$ 转置得到 $(D,B)$，再乘 $(B,M)$：$X^\\top \\bar{Y}$，得到 $(D,M)$。这是**唯一**可行的线性乘法——所以 $\\bar{W} = X^\\top \\bar{Y}$。\n\n同理，凑 $(B,D)$ 需要 $(B,M) \\times (M,D)$，即 $\\bar{X} = \\bar{Y} W^\\top$。\n\n偏置被批内所有样本共用，等于它有 $B$ 个后继，所以贡献必须**相加**：$\\bar{b} = \\sum_{i} \\bar{Y}_{i,:}$。\n\n逐元素乘积（Hadamard 积）要求两个因子完全同形，$(B,D)$ 与 $(B,M)$ 不同形，这条路一开始就被否定。而 $\\bar{Y}^\\top X$ 得到的是 $(M,D)$，是 $\\bar{W}$ 的转置，形状就不对——它是最常见的错误答案。"
+    },
+    {
+      "variant_id": "v2_index",
+      "style": "指标求和法",
+      "register": "拆到单个标量再拼回矩阵",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "拆到元素逐个算。前向的分量形式是 $Y_{i,k} = \\sum_j X_{i,j} W_{j,k} + b_k$。\n\n对 $W_{j,k}$ 求偏导：它只出现在 $Y_{i,k}$ 里，且 $\\partial Y_{i,k} / \\partial W_{j,k} = X_{i,j}$。由多变量链式法则对全部样本求和：\n$$\\frac{\\partial L}{\\partial W_{j,k}} = \\sum_i \\frac{\\partial L}{\\partial Y_{i,k}} \\cdot X_{i,j} = \\sum_i X_{i,j} \\, \\bar{Y}_{i,k}.$$\n\n改写左侧为 $(j,k)$ 位置：$\\sum_i X_{i,j}\\,\\bar{Y}_{i,k}$ 是 $X^\\top$ 的第 $j$ 行与 $\\bar{Y}$ 的第 $k$ 列的内积，也就是 $(X^\\top \\bar{Y})_{j,k}$。于是 $\\bar{W} = X^\\top \\bar{Y}$。\n\n同理 $\\partial L/\\partial X_{i,j} = \\sum_k \\bar{Y}_{i,k} W_{j,k}$，这正是 $(\\bar{Y} W^\\top)_{i,j}$。\n\n而 $b_k$ 对每个样本的贡献都是 1，所以 $\\partial L/\\partial b_k = \\sum_i \\bar{Y}_{i,k}$。\n\n三个结果里那 $\\sum_i$ 的含义很直接：**批维度上的累加**。每个样本贡献一次 $\\bar{y}_i \\, x_i^\\top$ 的外积，批量把它们加起来。"
+    },
+    {
+      "variant_id": "v3_verification",
+      "style": "数值验证法",
+      "register": "不用推理，直接把它算出来对照",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "这种结论最容易记错左右位置，用一个 $2 \\times 3 \\to 2 \\times 2$ 的小规模实例把它算出来对照：\n\n```python\ndef matmul(A, B):\n    return [[sum(A[i][k] * B[k][j] for k in range(len(B)))\n             for j in range(len(B[0]))] for i in range(len(A))]\n\ndef T(A):\n    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]\n\nX = [[1, 2, 3], [4, 5, 6]]\nW = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]\nY_bar = [[1, 1], [1, 1]]\n\nW_bar = matmul(T(X), Y_bar)\n# [[5.0, 5.0], [7.0, 7.0], [9.0, 9.0]]\n```\n\n每一列的三个数分别是 $1+4$、$2+5$、$3+6$，即 $X$ 的每一列在批维度上求和。这与沿参数的谓相吻合：$W$ 的第一行对所有样本的 $X$ 第一列求和。\n\n再看 $\\bar{X} = \\bar{Y}W^\\top$，得到 $[[0.3, 0.7, 1.1], [0.3, 0.7, 1.1]]$ 两个样本相同——因为 $\\bar{Y}$ 两行相同且 $W$ 被所有样本共用。\n\n整个过程只用了一次转置和一次乘法，没有出现逐个的元素相乘。任何逐元素写法都会因形状不匹配而先行失败。"
+    }
+  ]
+}

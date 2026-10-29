@@ -1,0 +1,67 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.graph.tape.001",
+  "node_id": "bp.graph.tape",
+  "type": "debug",
+  "difficulty": 3,
+  "stem": "某人手写了一个反向模式引擎，核心循环如下：\n\n```python\nfor entry in reversed(tape):\n    if entry.out_id == out_id:\n        grads[entry.out_id] = seed          # 注入种子\n    for u in entry.inputs:\n        grads[u.id] = entry.vjp(u, grads[entry.out_id])   # 写回前驱\n```\n\n请指出其中**两处**独立的错误，说明各自会在什么结构下暴露，并给出修正后的写法。",
+  "hints": [
+    "先看 `grads` 的写入方式：是赋值还是累加？",
+    "再看种子注入的位置：它写在了遍历内部，而不是遍历开始前"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "错误一：对前驱写回用的是赋值，同一个变量若有多个后继会被反复覆盖",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "该错误只在「共享前驱」结构上暴露，纯链结构下不会出错，因此极易漏测",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "错误二：种子写在循环体内，每次命中输出节点都会重置 grads[out]，抹掉此前累加的其它下游贡献",
+        "depends_on": []
+      },
+      {
+        "id": "s4",
+        "claim": "修正：遍历前一次性初始化 grads[out] = seed、其余为 0；循环内一律使用累加算子 +=；每轮参数更新前显式清零",
+        "depends_on": ["s1", "s3"]
+      }
+    ],
+    "terminal_steps": ["s2", "s4"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "赋值版在共享前驱上必然偏离数值梯度",
+      "code": "import math\n\nu = 0.8\nw_bar, q_bar = 1.0, 1.0\ndw = math.sin(u) + u * math.cos(u)\ndq = 2 * u\n\ncorrect = 0.0\ncorrect += w_bar * dw\ncorrect += q_bar * dq\n\nbuggy = w_bar * dw\nbuggy = q_bar * dq\n\ntarget = math.sin(u) + u * math.cos(u) + 2 * u\nh = 1e-6\nL = lambda t: math.sin(t) * t + t ** 2\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nassert abs(correct - target) < 1e-12\nassert abs(correct - num) < 1e-5\nassert abs(buggy - num) > 1e-6\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_account",
+      "style": "账户直觉视角",
+      "register": "把 grads 想成一排余额，看哪一步把余额清零了",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "把 `grads` 想成每个变量名下一个余额账户。\n\n**错误一**在里层：`grads[u.id] = ...` 是把账户**清零后重设**，而不是往里存钱。一个变量只要被两个以上的后继引用，就会有两次入账，第二次把第一次的钱抹掉。纯链结构里每个变量只有一个后继，账户只被写入一次，所以这段错代码在链式网络上跑得完全正常——这正是它难被发现的原因，必须构造「一个变量被多处引用」的图才会翻车。\n\n**错误二**在种子：种子注入写在循环体里，等于每绕回一次输出节点就把输出账户**归零重充**。输出节点若同时还被别的东西消费，那些贡献就没了。种子应当是遍历开始前的**一次性初始化**。\n\n修正后的顺序：先 `grads[out] = seed`，其余置 0；然后倒序遍历，一律 `grads[u.id] += ...`；一轮更新结束后统一清零。"
+    },
+    {
+      "variant_id": "v2_vertex_form",
+      "style": "顶点形式比对视角",
+      "register": "拿链式法则的顶点式逐项核对代码语义",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "链式法则的顶点形式是\n$$\\bar{u} = \\sum_{v \\in \\mathrm{succ}(u)} \\bar{v}\\,\\frac{\\partial v}{\\partial u}.$$\n\n代码必须实现这个**求和**。逐行比对：\n\n- 里层的 `for u in entry.inputs` 只是在枚举 `succ(u)` 中的一项；`grads[u.id] = ...` 的语义是「令 $\\bar{u}$ 等于这一项的贡献」，丢掉了求和号。正确语义应为 $\\bar{u} \\gets \\bar{u} + \\bar{v}\\,\\partial v/\\partial u$，即 `+=`。\n- 当 $|\\mathrm{succ}(u)| = 1$ 时求和只有一项，`=` 与 `+=` 恰好等价，故单链网络上二者不可区分，错误被掩盖。\n- `entry.out_id == out_id` 分支里的 `grads[entry.out_id] = seed` 同样是赋值。它位于循环内部，一旦输出节点被多次遍历，就会反复重置，把已累积的部分清零。输出顶点的求和 $\\bar{v}_{\\mathrm{out}} = 1 + \\text{其它后继贡献}$ 也随之退化。\n\n修正写法：\n```python\ngrads = {v: 0.0 for v in variables}\ngrads[out_id] = seed\nfor entry in reversed(tape):\n    g = grads[entry.out_id]\n    for u in entry.inputs:\n        grads[u.id] += entry.vjp(u, g)\n```"
+    },
+    {
+      "variant_id": "v3_regression",
+      "style": "回归测试视角",
+      "register": "先写一个能复现的最小用例，把两种写法的数值差异钉死",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "先承认这两处 bug 在链式网络上测不出来，所以必须**主动构造**共享前驱。取 $w = u\\sin u$、$q = u^2$、$L = w + q$：变量 $u$ 有两个后继。\n\n```python\nimport math\n\nu = 0.8\ndw = math.sin(u) + u * math.cos(u)\ndq = 2 * u\n\n# 正确：累加\ncorrect = 0.0\ncorrect += 1.0 * dw\ncorrect += 1.0 * dq\n\n# 错误：赋值覆盖\nbuggy = 1.0 * dw\nbuggy = 1.0 * dq\n\nL = lambda t: math.sin(t) * t + t ** 2\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nassert abs(correct - num) < 1e-5      # 通过\nassert abs(buggy - num)   > 1e-6      # 通过：bug 被复现\n```\n\n断言全部通过，说明：累加版匹配数值梯度，赋值版偏离。把这段塞进单测，赋值写法就再也溜不过去。\n\n对照清单：$\\mathrm{succ}$ 枚举处必须 `+=`；种子必须在遍历**之前**一次性注入；此外真实训练循环里，每个 batch 反向前要把参数上的 `.grad` 清零，否则跨 batch 累加又是一类新问题。"
+    }
+  ]
+}

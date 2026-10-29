@@ -1,0 +1,28 @@
+{
+  "schema": "knowledge-topic/v1",
+  "id": "backprop",
+  "title": "反向传播与自动微分",
+  "version": 1,
+  "updated_at": "2026-10-29",
+  "language": "zh-CN",
+  "math_flavor": "latex",
+  "axes_file": "schema/axes.backprop.json",
+  "description": "第一个垂直切片。用来跑通「知识平面 -> 习题池 -> 训练导出 -> 人类画布」全链路，跑通后再横向复制到其它主题。",
+  "conventions": {
+    "adjoint_notation": "记 v_bar = ∂L/∂v，即损失 L 对中间变量 v 的偏导，也称伴随量（adjoint）。",
+    "shape_notation": "张量形状写作 (B, D) 形式，B 为批大小，D 为输入特征维，M 为输出维。",
+    "terminology": [
+      { "en": "reverse mode", "zh": "反向模式", "note": "全文统一使用「反向模式」，不写「反向传播模式」这类混搭说法" },
+      { "en": "forward mode", "zh": "前向模式", "note": "与反向模式对称，全文同样统一" },
+      { "en": "vector-Jacobian product", "zh": "向量-雅可比积（VJP）", "note": "首次出现给中英对照，之后可用缩写 VJP" },
+      { "en": "Jacobian-vector product", "zh": "雅可比-向量积（JVP）", "note": "同上" }
+    ]
+  },
+  "authoring_rules": [
+    "strict_definition 必须是可独立背诵的封闭陈述：不依赖上文指代，不出现「如前所述」「同上」这类词",
+    "strict_definition 中出现的每个符号，必须在本节点或 prerequisites 链路上的某个节点里定义过",
+    "同一 family 的不同 stratum 节点，严谨程度必须随 stratum 单调递增，且互相不得矛盾",
+    "空缺格子不补概念",
+    "野孤节点（无 prerequisites 也无 extends）必须在 review 清单里显式说明"
+  ]
+}

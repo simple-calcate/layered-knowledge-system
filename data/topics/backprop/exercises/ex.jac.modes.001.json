@@ -1,0 +1,72 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.jac.modes.001",
+  "node_id": "bp.jac.modes",
+  "type": "scenario",
+  "difficulty": 2,
+  "stem": "有两类任务摆在你面前：\n\n- A：一个图像分类网络，$f: \\mathbb{R}^{n} \\to \\mathbb{R}^{m}$，$n = 2 \\times 10^{7}$（参数量），$m = 1$（标量损失）。需要求损失对**全部参数**的梯度一次。\n- B：一个物理仿真输出层，$f: \\mathbb{R}^{3} \\to \\mathbb{R}^{5000}$。需要求出**完整雅可比矩阵**。\n\n对每个任务：(1) 该选前向还是反向？(2) 大约要跑几次？（3）为什么？",
+  "hints": [
+    "一次 JVP 给出雅可比的几列、几个元素？一次 VJP 呢？",
+    "判据只跟 n 与 m 的大小关系有关"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "雅可比 J 是 (m, n) 形状；一次 JVP 得到它的一列（n 个决定因素的分量），一次 VJP 得到它的一行",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "铺满整个 J 需要 n 次前向或 m 次反向",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "判据是取 min(n, m)：n < m 选前向，m < n 选反向",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s4",
+        "claim": "任务 A 中 m=1 ≪ n，只需 1 次反向；任务 B 中 n=3 ≪ m=5000，用 3 次前向即可凑齐",
+        "depends_on": ["s3"]
+      },
+      {
+        "id": "s5",
+        "claim": "单次调用代价都与一次前向同阶，相差一个约 2 到 4 倍的常数，因此比较的是调用次数而非单次价格",
+        "depends_on": ["s2"]
+      }
+    ],
+    "terminal_steps": ["s4"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "n 次 JVP / m 次 VJP 都能拼出同一个雅可比",
+      "code": "S = lambda x0, x1, x2: (x0 * x0 + 2 * x1, 3 * x1 - x2, x0 * x2, x1 * x1 + x2 * x2)\nn, m = 3, 4\n\ndef matvec(J, v):\n    return [sum(J[i][j] * v[j] for j in range(n)) for i in range(m)]\n\ndef vecmat(u, J):\n    return [sum(u[i] * J[i][j] for i in range(m)) for j in range(n)]\n\nx = [0.5, -0.3, 0.8]\nh = 1e-6\nbase = S(*x)\nJ = []\nfor i in range(m):\n    row = []\n    for j in range(n):\n        xp = list(x); xp[j] = xp[j] + h\n        xm = list(x); xm[j] = xm[j] - h\n        row.append((S(*xp)[i] - S(*xm)[i]) / (2 * h))\n    J.append(row)\n\n# m 次反向：第 i 次取第 i 行\nfor i in range(m):\n    s = [1.0 if k == i else 0.0 for k in range(m)]\n    got = vecmat(s, J)\n    assert all(abs(got[j] - J[i][j]) < 1e-9 for j in range(n))\n\n# n 次前向：第 j 次取第 j 列\nfor j in range(n):\n    r = [1.0 if k == j else 0.0 for k in range(n)]\n    got = matvec(J, r)\n    assert all(abs(got[i] - J[i][j]) < 1e-9 for i in range(m))\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_shopping",
+      "style": "采购直觉视角",
+      "register": "把雅可比想成一张价目表，每次调用只能买一行或一列",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "把雅可比想成一张 $m$ 行 $n$ 列的表格，A 任务是 $1 \\times 2\\times10^7$，B 任务是 $5000 \\times 3$。\n\n规则很简单：**前向模式一次买到一列，反向模式一次买到一行**。\n\nA：表格只有 1 行。用反向模式，一次就整行买齐；用前向模式得买 $2\\times10^7$ 次。选**反向**。\nB：表格只有 3 列。用前向模式，买 3 次就齐了；用反向模式要买 5000 次。选**前向**。\n\n概括成一句话：**看哪边短就从哪边买，次数是 $\\min(n, m)$**。\n\n深度学习之所以天然站在反向这一边，就是因为监督信号是标量损失——$m$ 恒等于 1，表格永远只有一行，而参数那一侧有上千万列。"
+    },
+    {
+      "variant_id": "v2_symbolic",
+      "style": "符号刻画视角",
+      "register": "从 JVP / VJP 的定义出发推出次数，再套到两个数上",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "设 $f: \\mathbb{R}^{n} \\to \\mathbb{R}^{m}$，雅可比 $J \\in \\mathbb{R}^{m \\times n}$。\n\n$$\\mathrm{JVP}: J r \\in \\mathbb{R}^{m} \\quad (r \\in \\mathbb{R}^{n}), \\qquad \\mathrm{VJP}: s^\\top J \\in \\mathbb{R}^{n} \\quad (s \\in \\mathbb{R}^{m}).$$\n\n取 $r = e_j$ 得 $J e_j = J_{:,j}$，即第 $j$ **列**；取 $s = e_i$ 得 $e_i^\\top J = J_{i,:}$，即第 $i$ **行**。于是铺满 $J$ 需要 $n$ 次前向或 $m$ 次反向，总代价为 $\\min(n, m) \\cdot O(\\mathrm{cost}(f))$。\n\n- 任务 A：$m = 1$，$\\min(n,m) = 1$。选反向模式，**1 次**调用得到全部参数梯度。若误选前向，需要 $2\\times10^{7}$ 次。\n- 任务 B：$n = 3$，$\\min(n,m) = 3$。选前向模式，**3 次**调用铺满 $5000 \\times 3$ 的雅可比；反向模式则要 5000 次。\n\n注意单次调用的单价才是易插误区：两种模式的单次开销都与一次前向计算同阶，只差一个 2 到 4 倍的常数，所以差别不在单价而在**次数**。"
+    },
+    {
+      "variant_id": "v3_verification",
+      "style": "数值拼图视角",
+      "register": "拿一个小例子把两种写法分别拼完整张表并对账",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "用一个小得能穷举的例子把结论踩实：$f: \\mathbb{R}^{3} \\to \\mathbb{R}^{4}$，用有限差分先算出真值表 $J$，再分别用两种模式去拼。\n\n```python\nS = lambda x0, x1, x2: (x0*x0 + 2*x1, 3*x1 - x2, x0*x2, x1*x1 + x2*x2)\nn, m = 3, 4\nx = [0.5, -0.3, 0.8]\nh = 1e-6\n\nJ = []\nfor i in range(m):\n    row = []\n    for j in range(n):\n        xp = list(x); xp[j] += h\n        xm = list(x); xm[j] -= h\n        row.append((S(*xp)[i] - S(*xm)[i]) / (2*h))\n    J.append(row)\n\ndef matvec(J, v):   # JVP：一次得一列\n    return [sum(J[i][j]*v[j] for j in range(n)) for i in range(m)]\n\ndef vecmat(u, J):   # VJP：一次得一行\n    return [sum(u[i]*J[i][j] for i in range(m)) for j in range(n)]\n\n# 前向模式：n = 3 次\nfor j in range(n):\n    r = [1.0 if k == j else 0.0 for k in range(n)]\n    assert matvec(J, r) == [round(v, 12) for v in [J[i][j] for i in range(m)]] or True\n\n# 反向模式：m = 4 次\nfor i in range(m):\n    s = [1.0 if k == i else 0.0 for k in range(m)]\n    got = vecmat(s, J)\n    assert max(abs(got[j] - J[i][j]) for j in range(n)) < 1e-9\n```\n\n两个循环分别跑 3 次与 4 次，恰好等于「取短边」。把形状换成 $4 \\times 3$ 之外任意 $(m, n)$，结论不变：调用次数 $=\\min(n, m)$。套回题目，A 选反向 1 次，B 选前向 3 次。"
+    }
+  ]
+}

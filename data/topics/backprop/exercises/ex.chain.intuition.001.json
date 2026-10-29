@@ -1,0 +1,68 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.chain.intuition.001",
+  "node_id": "bp.chain.intuition",
+  "type": "counting",
+  "difficulty": 2,
+  "stem": "考虑标量链 $v_1 = f_1(x)$、$v_2 = f_2(v_1)$、$v_3 = f_3(v_2)$，损失取 $L = v_3$。现在要得到 $L$ 对全部中间量 $v_2, v_1, x$ 的偏导。\n\n(1) 若给每个变量各写一条完整的链式法则、相邻两条之间不做任何复用，一共要做多少次乘法？\n(2) 若按 $v_3 \\to v_2 \\to v_1 \\to x$ 的逆序反向计算，一共要做多少次乘法？\n(3) 推广到 $n$ 层链，两种做法各是几阶？",
+  "hints": [
+    "先写出完整的三条表达式，再去数其中乘法符号的个数",
+    "注意逆序做法里，算前一个变量的偏导时能不能直接借用已经算好的后一个量"
+  ],
+  "skeleton": {
+    "note": "不变量清单的升级形态：不是一组关键词，而是一条有序的因果链",
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "三条完整链式法则分别为 f₃′、f₃′·f₂′、f₃′·f₂′·f₁′，各自含 1、2、3 次乘法",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "不做复用时总乘法次数为 1+2+3 = 6，属于 Σ_{k=1}^{n} k 的形式",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "逆序时前一步的结果恰是下一步表达式的前缀，因此每层只需新增 1 次乘法",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s4",
+        "claim": "本例逆序共 3 次，相对 6 次省一半；一般 n 层为 O(n²) 与 O(n) 之别",
+        "depends_on": ["s2", "s3"]
+      }
+    ],
+    "terminal_steps": ["s4"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "反向递推的结果必须等于数值梯度",
+      "code": "import math\nf1 = lambda v: math.sin(v)\nf2 = lambda v: v ** 3\nf3 = lambda v: math.exp(0.5 * v)\nd1 = lambda v: math.cos(v)\nd2 = lambda v: 3 * v ** 2\nd3 = lambda v: 0.5 * math.exp(0.5 * v)\nx = 0.7\nv1 = f1(x)\nv2 = f2(v1)\ng3 = 1.0\ng2 = g3 * d3(v2)\ng1 = g2 * d2(v1)\ng0 = g1 * d1(x)\nh = 1e-6\nnum = (f3(f2(f1(x + h))) - f3(f2(f1(x - h)))) / (2 * h)\nassert abs(g0 - num) < 1e-5, f'reverse={g0} numeric={num}'\nassert abs(g0 - d3(v2) * d2(v1) * d1(x)) < 1e-12\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_ledger",
+      "style": "账单直觉视角",
+      "register": "用查账隐喻把每一步的开销摆出来数",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "把三条追问各当成一次从头重查的账。\n\n追到 $v_2$：往回走一层，账单记 **1** 笔。\n追到 $v_1$：往回走两层，$f_3' \\cdot f_2'$，记 **2** 笔。\n追到 $x$：往回走三层，$f_3' \\cdot f_2' \\cdot f_1'$，记 **3** 笔。\n\n三次互不通气，于是 $1+2+3 = 6$ 笔。\n\n换成交叉清算：查完 $v_2$ 已经知道「从这里往下游承担了多少」，再往前推一层就不必重算这一截，只要乘上新增的那个环节。于是每层只付 1 笔，三层共 **3** 笔，正好省一半。\n\n链长到 $n$ 层时，前一种是 $1+2+\\dots+n = n(n+1)/2$，**平方**增长；后一种始终是 $n$ 次，**线性**增长。这就是「反向」两个字换来的全部好处。"
+    },
+    {
+      "variant_id": "v2_symbolic",
+      "style": "符号递推视角",
+      "register": "引入伴随记号，写成递推式后直接数乘法",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "记伴随量 $\\bar{v}_i \\triangleq \\partial L / \\partial v_i$，取 $\\bar{v}_3 = 1$。\n\n**朴素展开**\n$$\\bar{v}_2 = f_3', \\quad \\bar{v}_1 = f_3' f_2', \\quad \\bar{x} = f_3' f_2' f_1'.$$\n乘法个数分别是 $1, 2, 3$，合计 $\\sum_{k=1}^{3} k = 6$。\n\n**反向递推**\n$$\\bar{v}_{i-1} = \\bar{v}_i \\cdot f_i'(v_{i-1}), \\quad i = 3, 2, 1.$$\n每步只在已算好的 $\\bar{v}_i$ 右侧乘一个标量，故每步恰 1 次乘法，共 3 次。\n\n差异的根源：$\\bar{v}_{i-1}$ 的表达式含有 $\\bar{v}_i$ 的**完整表达式作为前缀**，这一段被反复重写。递推式把这个前缀提取成一个复用的中间量，冗余随之消失。\n\n一般地，$n$ 层时朴素为 $\\sum_{k=1}^{n} k = O(n^2)$，递推为 $n = O(n)$。"
+    },
+    {
+      "variant_id": "v3_verification",
+      "style": "可执行验证视角",
+      "register": "不空谈计数，写代码把两条路径同时跑出来对账",
+      "covers_steps": ["s1", "s2", "s3", "s4"],
+      "content": "计数容易嘴滑坡，写成代码踩实：\n\n```python\nimport math\n\nf1 = lambda v: math.sin(v)\nf2 = lambda v: v ** 3\nf3 = lambda v: math.exp(0.5 * v)\nd1 = lambda v: math.cos(v)\nd2 = lambda v: 3 * v ** 2\nd3 = lambda v: 0.5 * math.exp(0.5 * v)\n\nx = 0.7\nv1, v2 = f1(x), f2(f1(x))\n\n# 朴素：三条式子各写一遍，共 6 次乘法\nnaive_v2 = 1 * d3(v2)\nnaive_v1 = d3(v2) * d2(v1)\nnaive_x  = d3(v2) * d2(v1) * d1(x)\n\n# 反向：逆序复用，共 3 次乘法\ng = 1.0\ng2 = g * d3(v2)\ng1 = g2 * d2(v1)\ng0 = g1 * d1(x)\n\nh = 1e-6\nnum = (f3(f2(f1(x + h))) - f3(f2(f1(x - h)))) / (2 * h)\nassert abs(g0 - num) < 1e-5\nassert abs(g0 - naive_x) < 1e-12\n```\n\n两条路径数值完全一致（断言通过），乘法次数却是 6 对 3。把三层改成 $n$ 层循环，前者是对角求和 $O(n^2)$，后者是单趟递推 $O(n)$——运行耗时能直接印证这个阶。"
+    }
+  ]
+}

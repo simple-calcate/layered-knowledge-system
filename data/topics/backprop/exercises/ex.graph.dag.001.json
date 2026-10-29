@@ -1,0 +1,72 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.graph.dag.001",
+  "node_id": "bp.graph.dag",
+  "type": "scenario",
+  "difficulty": 3,
+  "stem": "下面是一个容易造成混淆的案例：一段带循环的训练代码\n\n```python\nh = x\nfor _ in range(T):\n    h = tanh(W @ h + b)     # 同一个 W、同一个 b，反复用\nloss = (h - y) ** 2\n```\n\n有人坚持认为这段代码对应的计算图「有环」，理由是 $h$ 在循环里被反复更新。请判断这个说法对不对，并说明：为了让标准的 DAG 反向传播成立，这里隐含做了什么变换？这个变换的代价是什么？",
+  "hints": [
+    "把每一次循环迭代实际创建的中间张量分开来看，它们是不是同一个对象？",
+    "考虑 T 变成运行时才知道的动态值时，图的深度还能不能预先确定"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "每次迭代都产生新的中间张量 h_1, …, h_T，按时间下标区分后它们是互不相同的节点",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "因此实际的图是一条长度为 T 的链，无环，存在拓扑序",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "隐含做的变换是「按时间展开」（unrolling）：把紧凑的循环重写为 T 份算子副本，共享同一套参数 W、b",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s4",
+        "claim": "参数共享的语义是：每个副本对应的 W 的梯度都累加到同一个张量上，即 g_W = Σ_t ∂L/∂W_t",
+        "depends_on": ["s3"]
+      },
+      {
+        "id": "s5",
+        "claim": "代价是图深度不再固定为常数，内存为 O(T)，且若 T 是运行时动态值则图结构无法静态编译",
+        "depends_on": ["s3"]
+      }
+    ],
+    "terminal_steps": ["s3", "s4", "s5"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "展开后的 BPTT 梯度必须等于数值差分",
+      "code": "import math\n\nT = 3\nx = 0.4\ny = 0.9\nW = 0.7\nb = 0.1\n\ndef forward(W):\n    hs = []\n    h = x\n    for _ in range(T):\n        h = math.tanh(W * h + b)\n        hs.append(h)\n    return hs, (hs[-1] - y) ** 2\n\ndef backward(W):\n    hs, _ = forward(W)\n    h_bar = 2.0 * (hs[-1] - y)\n    gW = 0.0\n    for t in range(T - 1, -1, -1):\n        pre = W * (x if t == 0 else hs[t - 1]) + b\n        loc = 1.0 - math.tanh(pre) ** 2\n        gW += h_bar * loc * (x if t == 0 else hs[t - 1])\n        h_bar = h_bar * loc * W\n    return gW\n\ng = backward(W)\nh = 1e-6\n_, lp = forward(W + h)\n_, lm = forward(W - h)\nnum = (lp - lm) / (2 * h)\nassert abs(g - num) < 1e-5, f'bptt={g} numeric={num}'\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_unroll",
+      "style": "时间展开视角",
+      "register": "把循环写成一排并列的计算单元，图形化地看清它是链而不是环",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "「 $h$ 被反复更新」只是 Python 变量名的复用，不是图结构上的环。每一次迭代都实实在在地生成了一个新的张量；给它们带上时间下标写作 $h_1, h_2, \\dots, h_T$ 之后，结构一眼就清楚了：\n\n$$h_0 \\xrightarrow{\\ \\varphi\\ } h_1 \\xrightarrow{\\ \\varphi\\ } h_2 \\xrightarrow{\\ \\varphi\\ } \\cdots \\xrightarrow{\\ \\varphi\\ } h_T \\longrightarrow L$$\n\n这是一条笔直的链，环在哪儿都没有。$W$ 和 $b$ 不是「回到过去」的边，而是一组**被所有 $\\varphi$ 副本共同引用的参数**——引用共享不等于图上有回路。\n\n所以标准的 DAG 机制完全适用。我们隐含做的变换叫**按时间展开**：把一句循环手写展开成串行排列的 $T$ 份算子副本。\n\n代价有两笔。一是账本变长：为了倒着结 $T$ 层账，必须保留 $T$ 份中间状态，显存是 $O(T)$ 而不是 $O(1)$。二是结构不再静态：$T$ 若在运行时才确定，图深就跟着变，静态编译器无法提前把它固化下来，只能走动态图或预设最大展开步数。"
+    },
+    {
+      "variant_id": "v2_formal",
+      "style": "图论定义视角",
+      "register": "回到 DAG 的定义本身逐条核对",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "按定义，计算图 $G = (V, E)$ 要求：(i) 每个节点是一个张量变量；(ii) 每条边 $(u \\to v)$ 表示 $v$ 直接依赖 $u$；(iii) 每个非源节点绑定一个「原子算子」 $\\varphi_v$，使 $v = \\varphi_v(\\mathrm{pred}(v))$。无环性保证拓扑序存在。\n\n逐条核对这段代码。令 $h_t$ 表示第 $t$ 次迭代结束后得到的那个张量值。根据 (i)，$h_1, \\dots, h_T$ 是 $T$ 个**不同的节点**而非同一节点被重赋值——张量值一旦确定就是不可变的数据，变量名只是指向它的句柄。于是边集为 $\\{(h_{t-1} \\to h_t)\\}_{t=1}^{T} \\cup \\{(W \\to h_t), (b \\to h_t)\\}_{t=1}^{T}$，容易验证其传递闭包不含自反项，故 $G$ 是 DAG。\n\n这一「给每次迭代的张量各自分配一个独立身份」的操作即**按时间展开**（unrolling），得到的是一个有 $T$ 份 $\\varphi$ 副本的图，其中所有副本共享同一个参数节点 $W$。\n\n共享的梯度语义是：把 $W$ 看作单一变量，由链式法则的顶点形式，$W_{\\text{bar}} = \\sum_{t=1}^{T} \\partial h_t / \\partial W \\cdot \\bar{h}_t$，即各副本的梯度累加。实现上正是靠 tape 的 `+=` 自然完成。\n\n代价：图深 $|V|$ 随 $T$ 线性增长，故峰值内存 $O(T)$；且若 $T$ 由数据决定，$G$ 的拓扑结构在运行前不可知，静态优化无从下手。"
+    },
+    {
+      "variant_id": "v3_engineering",
+      "style": "框架行为视角",
+      "register": "从真实 Autograd 引擎怎么记录这段循环来解释",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "真实框架里，这段代码产生的 tape 条目是这么排的：\n\n```\nt=1: matmul(W,h0) -> add(b) -> tanh  => tl_1, tl_2, tl_3 结点\nt=2: matmul(W,h1) -> add(b) -> tanh  => 一批新结点（指向 tl_3）\n...\n```\n\n每一轮都往 tape 尾部追加一组**全新的**结点旧结点不会被改写。tape 是只增不减的日志，日志天然无环——后写的一定引用先写的。所以「有环」的直觉来自把 Python 变量 `h` 当成了图节点，而真正的图节点是那些**每轮新建的匿名中间张量**。\n\n用一段代码核对一下展开后的梯度到底对不对：\n\n```python\nimport math\nT, x, y, W, b = 3, 0.4, 0.9, 0.7, 0.1\n\ndef forward(W):\n    hs, h = [], x\n    for _ in range(T):\n        h = math.tanh(W * h + b)\n        hs.append(h)\n    return hs, (hs[-1] - y) ** 2\n\ndef backward(W):\n    hs, _ = forward(W)\n    h_bar, gW = 2.0 * (hs[-1] - y), 0.0\n    for t in range(T - 1, -1, -1):\n        prev = x if t == 0 else hs[t - 1]\n        loc = 1.0 - math.tanh(W * prev + b) ** 2\n        gW += h_bar * loc * prev      # 各副本累加到同一个参数\n        h_bar = h_bar * loc * W\n    return gW\n\nh = 1e-6\n_, lp = forward(W + h); _, lm = forward(W - h)\nassert abs(backward(W) - (lp - lm) / (2 * h)) < 1e-5\n```\n\n断言通过，说明「展开 + 累加」就是正确的 DAG 语义。代价也随之落地：这个 `hs` 列表必须一路留着，显存 $O(T)$；而且当 `T` 来自数据长度时，图深是动态的，静态图引擎要么放弃，要么限定一个最大步数。"
+    }
+  ]
+}

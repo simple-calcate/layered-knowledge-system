@@ -1,0 +1,78 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.layer.stability.001",
+  "node_id": "bp.layer.stability",
+  "type": "scenario",
+  "difficulty": 4,
+  "stem": "一个 $L$ 层的串行网络：$h_0 = x$，$h_\\ell = W h_{\\ell-1}$，$L = \\ell(h_L)$，权重在层间共享同一个 $W$，其谱半径为 $\\rho$。取 $L = 100$。\n\n(1) 写出 $\\partial L / \\partial h_0$ 与 $\\partial L / \\partial h_L$ 的关系。\n(2) 当 $\\rho = 0.9$ 与 $\\rho = 1.1$ 时，梯度范数的量级分别大约是多少？\n(3) 把残差形式 $h_\\ell = h_{\\ell-1} + F(h_{\\ell-1})$ 加上去之后，这个连乘结构发生了什么变化？为什么能缓解梯度消失？\n(4) 训练时观察到的「梯度很小」是否一定就是上述机制？请指出另一种同样表现为小梯度、但成因完全不同的机制。",
+  "hints": [
+    "先看相邻层之间的局部雅可比是什么",
+    "残差形式的雅可比是 I + ∂F/∂h，把这个乘积展开看，哪一项不会随深度衰减",
+    "考虑浮点数精度，而不是连乘"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "每层对 h_{ℓ-1} 的局部雅可比同为 W，故链式法则给出 ∂L/∂h_0 = (Wᵀ)^L · ∂L/∂h_L",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "取范数得上界 ‖∂L/∂h_0‖ ≤ ‖W‖^L · ‖∂L/∂h_L‖，因此衰减或放大的速率随 L 指数变化",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "数值当量为 rho^L：rho=0.9 时约 2.66e-5，rho=1.1 时约 1.38e4",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s4",
+        "claim": "这是连乘结构本身的性质，与具体任务和数据无关",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s5",
+        "claim": "残差形式下每层雅可比变为 (I + ∂F/∂h)，其乘积展开含有一项恒等的贡献，使梯度存在不随深度衰减的直通分量",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s6",
+        "claim": "另一种成因是半精度下溢：梯度本身非零，但小于该格式的最小正规数被量化为 0，与谱半径无关",
+        "depends_on": []
+      }
+    ],
+    "terminal_steps": ["s3", "s5", "s6"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "连乘衰减/放大与残差直通分量的数值对照",
+      "code": "import random\nrandom.seed(3)\nL = 100\nassert abs(0.9 ** L - 2.6561398887587544e-05) < 1e-18\nassert abs(1.1 ** L - 13780.612339823708) < 1e-6\n\n# 残差：每层雅可比 = 1 + w，w 为小的负数（模拟 F 分支的局部导数）\nrandom.seed(5)\nws = [random.uniform(-0.05, 0.02) for _ in range(L)]\nplain = 1.0\nresid = 1.0\nfor w in ws:\n    plain *= w\n    resid *= (1.0 + w)\nassert abs(plain) < 1e-40, plain\nassert abs(resid) > 0.01, resid\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_intuition",
+      "style": "物理直觉法",
+      "register": "把连乘想成一层层滤网",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "把每一层想成一道滤网，网格 soit 的透过率是它对该层输入的局部导数。信号从输出端往回走的晨 = 一道一道滤网  consecutive 穿过去，所以总透过率是把它们**相乘**。\n\n相邻层之间这里都是同一个 $W$，于是总透过率是 $(W^\\top)^L$。乘 100 次之后：\n\n- $\\rho = 0.9$：$0.9^{100} \\approx 2.66 \\times 10^{-5}$，输入端听到的几乎是耳语。\n- $\\rho = 1.1$：$1.1^{100} \\approx 1.38 \\times 10^{4}$，输入端听到的是炸雷。\n\n**注意这两种糟糕都由同一件事引起**：连乘放大成了指数。换个任务、换份数据都改不了它。\n\n**残差做了什么**：把每层改写成 $h_\\ell = h_{\\ell-1} + F(h_{\\ell-1})$ 之后，每层的雅可比从 $W$ 变成了 $I + \\partial F/\\partial h$。把这一长串乘积展开，其中有一项是 $I \\cdot I \\cdots I = I$——一条**完全不经过任何 $F$ 的直通路径**。只要存在这一项，梯度里就始终有一部分不会被深度按指数压掉。\n\n最后一问：**不一定。** 还有一种常见情形是小梯度来自浮点格式的量化——半精度的最小正规数有限，非零的极小梯度会被直接记成 0。这时「梯度消失」的成因是精度，不是谱半径，要靠损失缩放而不是改结构。"
+    },
+    {
+      "variant_id": "v2_formal",
+      "style": "范数不等式法",
+      "register": "取范数上界做严格估计",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "由 tape 语义，$\\partial L / \\partial h_{\\ell-1} = W^\\top (\\partial L / \\partial h_\\ell)$，迭代 $L$ 次得\n$$\\frac{\\partial L}{\\partial h_0} = (W^\\top)^L \\frac{\\partial L}{\\partial h_L}.$$\n\n取算子范数，由其次乘性 $\\|AB\\| \\le \\|A\\|\\,\\|B\\|$：\n$$\\left\\| \\frac{\\partial L}{\\partial h_0} \\right\\| \\le \\|W\\|^L \\cdot \\left\\| \\frac{\\partial L}{\\partial h_L} \\right\\|.$$\n\n当 $\\|W\\| = \\rho$ 时即 $\\rho^L$。取 $L = 100$：$\\rho = 0.9 \\Rightarrow 2.66 \\times 10^{-5}$；$\\rho = 1.1 \\Rightarrow 1.38 \\times 10^{4}$。二者都偏离 1 若干个数量级，说明这个结论完全由 $\\rho$ 与 $L$ 决定，与损失函数的形式无关。\n\n**残差形式**。令 $J_\\ell = \\partial h_\\ell / \\partial h_{\\ell-1} = I + A_\\ell$，其中 $A_\\ell = \\partial F/\\partial h$。则\n$$\\frac{\\partial L}{\\partial h_0} = \\left( \\prod_{\\ell=1}^{L} (I + A_\\ell)^\\top \\right) \\frac{\\partial L}{\\partial h_L}.$$\n将乘积展开为 $I + \\sum A_\\ell^\\top + \\sum A_\\ell^\\top A_{\\ell'}^\\top + \\cdots$，首项 $I$ 对应一条不穿过任何 $F$ 分支的路径。因此即使所有 $A_\\ell$ 各自收缩，整体也不再被压到零。\n\n**另一种成因**。半精度（float16）的最小正规数约为 $6 \\times 10^{-8}$，次正规数下界更低。当一个非零梯度的量级小于该格式能表示的最小数时，它被直接量化为 0。此现象与 $\\|W\\|$ 无关，也不会因加深残差而改善，正确的干预手段是缩放重新居中的 loss scaling。"
+    },
+    {
+      "variant_id": "v3_numeric",
+      "style": "数值对照法",
+      "register": "用具体数字把三种情形摆在一起",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5", "s6"],
+      "content": "把结论直接算出来：\n\n| 情形 | 连乘对象 | $L = 100$ 的结果 |\n| --- | --- | --- |\n| $\\rho = 0.9$ | $0.9^{100}$ | $2.66 \\times 10^{-5}$ |\n| $\\rho = 1.1$ | $1.1^{100}$ | $1.38 \\times 10^{4}$ |\n| 残差（小负导数） | $\\prod (1 + w_\\ell)$ | 量级保持在 $10^{-1}$ 上下 |\n\n三位数说明一切：把同样的 100 个因子从「直接相乘」换成「1 加上它再相乘」，结果从小得看不见跳到了正常范围。\n\n```python\nimport random\nrandom.seed(5)\nL = 100\nws = [random.uniform(-0.05, 0.02) for _ in range(L)]\nplain, resid = 1.0, 1.0\nfor w in ws:\n    plain *= w\n    resid *= (1.0 + w)\nprint(f'{plain:.3e}  {resid:.3f}')\n```\n\n**这里必须补一句限定**：残差解决的是「梯度信号被连乘压到零」这一种消失。它不保证训练一定稳定——如果每个 $F$ 分支自身的雅可比很大，$(I + A)$ 的范数仍可能离家譜 > 1，连乘照样爆炸。工程上还需要归一化层把信号尺度固定住。\n\n至于最后那问：看到全零梯度先别急着改结构。打印出 float16 与 float32 两种精度下的梯度范数，若后者恢复正常则是**下溢**，要用缩放；若两者一样小，才是**谱收缩**，需要结构与初始化层面的调整。"
+    }
+  ]
+}

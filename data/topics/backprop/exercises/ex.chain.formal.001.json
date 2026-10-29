@@ -1,0 +1,72 @@
+{
+  "schema": "exercise/v1",
+  "id": "ex.chain.formal.001",
+  "node_id": "bp.chain.formal",
+  "type": "derivation",
+  "difficulty": 3,
+  "stem": "计算图中节点 $w$ 有前驱 $u$，而 $u$ 同时又直接参与了另一个节点 $q$ 的计算（即 $u$ 有两个后继 $w$ 和 $q$）。$w = \\varphi(u)$，$\\varphi$ 与其它的映射都只依赖 $u$，与别的变量无关。\n\n请写出 $\\partial L / \\partial u$ 的正确表达式，并说明：如果实现时把其中一条通路的贡献漏掉了，算出来的量在数学上对应于什么？",
+  "hints": [
+    "把注意力放在整个后继集合 succ(u) 上，而不是某一条具体的边",
+    "「漏掉一条通路」等价于把求和符号里的某一项删掉，看看剩下的那项单独在算什么"
+  ],
+  "skeleton": {
+    "steps": [
+      {
+        "id": "s1",
+        "claim": "u 通过两条互不重叠的通路影响 L：经 w 与经 q",
+        "depends_on": []
+      },
+      {
+        "id": "s2",
+        "claim": "每条通路的贡献是该后继的伴随量乘以对应的局部导数，即 w_bar·∂w/∂u 与 q_bar·∂q/∂u",
+        "depends_on": ["s1"]
+      },
+      {
+        "id": "s3",
+        "claim": "总梯度是全部后继贡献之和：u_bar = Σ_{v∈succ(u)} v_bar·∂v/∂u",
+        "depends_on": ["s2"]
+      },
+      {
+        "id": "s4",
+        "claim": "漏掉任一项后，得到的是「只保留 w 通路（或只保留 q 通路）的条件偏导」，即假设另一后继与 u 解耦时的偏导，而不是 ∂L/∂u",
+        "depends_on": ["s3"]
+      },
+      {
+        "id": "s5",
+        "claim": "实现上必须写成累加 += 而非赋值 =，否则后者覆盖前者",
+        "depends_on": ["s3"]
+      }
+    ],
+    "terminal_steps": ["s4", "s5"]
+  },
+  "checks": [
+    {
+      "kind": "python",
+      "name": "双通路累加必须与数值梯度一致，单通路会偏小",
+      "code": "import math\n\n# L = sin(u)*u + u**2  -> u 经两条通路影响 L\nL = lambda u: math.sin(u) * u + u ** 2\ndL = lambda u: math.sin(u) + u * math.cos(u) + 2 * u\n\n# 拆成两条通路：w = sin(u)*u ; q = u**2 ; L = w + q\nw = lambda u: math.sin(u) * u\nq = lambda u: u ** 2\ndw = lambda u: math.sin(u) + u * math.cos(u)\ndq = lambda u: 2 * u\n\nu = 0.8\nw_bar, q_bar = 1.0, 1.0\nfull = w_bar * dw(u) + q_bar * dq(u)\nonly_w = w_bar * dw(u)\n\nassert abs(full - dL(u)) < 1e-12\nassert abs(only_w - dL(u)) > 1e-6\n\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\nassert abs(full - num) < 1e-5\n"
+    }
+  ],
+  "answers": [
+    {
+      "variant_id": "v1_flow",
+      "style": "通路直觉视角",
+      "register": "扰动顺着几条管子走，回来时要各路加总",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "想象给 $u$ 加一个微小扰动 $\\delta$。这个扰动会兵分两路：一路改变 $w$，一路改变 $q$，最后两路各自把影响汇进 $L$。既然是两条互不重叠的管子，总效果自然是两路之和：\n\n$$\\frac{\\partial L}{\\partial u} = \\underbrace{\\bar{w}\\,\\frac{\\partial w}{\\partial u}}_{\\text{经 } w} + \\underbrace{\\bar{q}\\,\\frac{\\partial q}{\\partial u}}_{\\text{经 } q}.$$\n\n这里 $\\bar{w},\\bar{q}$ 是「下游每单位变化会引起 $L$ 变化多少」，$\\partial w/\\partial u,\\partial q/\\partial u$ 是「$u$ 动一点会让该后继动多少」，两者相乘就是这一路的净贡献。\n\n如果只算了经 $w$ 那一路，得到的不是「错的梯度」，而是**另一个问题的正确答案**：它回答的是「假如 $q$ 完全不受 $u$ 影响，$L$ 对 $u$ 的敏感度是多少」。这是一个条件偏导，数量上必然偏小。\n\n落到代码上就一句话：**同一个变量的梯度会被多次命中，所以必须是 `+=`**。写成 `=` 的话，第二次更新会把第一次的结果擦掉，等于默认世界只有一条管子。"
+    },
+    {
+      "variant_id": "v2_total_derivative",
+      "style": "全微分视角",
+      "register": "从全微分出发逐项收集 du 的系数",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "对 $L = L(w, q)$，其中 $w = \\varphi(u)$、$q = \\psi(u)$，二者皆只通过 $u$ 依赖于自变量。取全微分：\n\n$$dL = \\frac{\\partial L}{\\partial w}\\,dw + \\frac{\\partial L}{\\partial q}\\,dq\n= \\bar{w}\\,\\varphi'(u)\\,du + \\bar{q}\\,\\psi'(u)\\,du.$$\n\n把 $du$ 提出来，其系数即全导数：\n$$\\frac{dL}{du} = \\bar{w}\\,\\varphi'(u) + \\bar{q}\\,\\psi'(u) \\;=\\; \\sum_{v \\in \\mathrm{succ}(u)} \\bar{v}\\,\\frac{\\partial v}{\\partial u}.$$\n\n注意这里用 $d$（全导数）而非 $\\partial$：因为两条通路都是 $u$ 的函数，$u$ 没有第二条独立来源，故全导数与「保持其余自变量不变」的偏导数在此一致。\n\n删去 $\\bar{q}\\,\\psi'(u)$ 一项后，表达式变为在某个约束流形上的偏导——即令 $dq \\equiv 0$ 后所得的 $\\partial L / \\partial u|_{q\\ \\text{frozen}}$。它仍是良定义的数学对象，但**不是**我们要的 $\\partial L / \\partial u$，除非 $\\psi'(u) \\equiv 0$。\n\n推论：迭代式实现必须使用累加赋值 `u_bar += contribution`；若用 `u_bar = contribution`，则循环结束后只剩最后一条入边的贡献。"
+    },
+    {
+      "variant_id": "v3_numeric",
+      "style": "数值对照视角",
+      "register": "构造具体例子，把三种算法的结果和数值差分并排列出来",
+      "covers_steps": ["s1", "s2", "s3", "s4", "s5"],
+      "content": "取一个能动手算的例子：$w = u\\sin u$，$q = u^2$，$L = w + q$，$u = 0.8$。\n\n```python\nimport math\nL  = lambda u: math.sin(u) * u + u ** 2\ndw = lambda u: math.sin(u) + u * math.cos(u)\ndq = lambda u: 2 * u\n\nu = 0.8\nfull  = 1.0 * dw(u) + 1.0 * dq(u)   # 两路都算\npartial_w = dw(u)                    # 只算经 w 一路\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nprint(full, partial_w, num)\n# 2.7718...   1.1718...   2.7718...\n```\n\n三个数摆在一起很说明问题：\n\n| 算法 | 结果 | 与数值差分的关系 |\n| --- | --- | --- |\n| 双通路累加 | $2.7718$ | 完全一致 |\n| 只留 $w$ 通路 | $1.1718$ | 少了 $\\approx 1.6 = 2u$ |\n| 数值差分 | $2.7718$ | 参照真值 |\n\n差值恰好是被丢弃的那一项 $\\bar{q}\\,\\partial q/\\partial u = 1 \\cdot 2u = 1.6$。这验证了缺失的不是噪声，而是完整的一条求和项。因此在实现里，每处理一条出边都要往同一个累加器里加：`u_bar += v_bar * local_grad`，而不是覆盖。"
+    }
+  ]
+}

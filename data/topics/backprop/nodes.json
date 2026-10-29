@@ -1,0 +1,398 @@
+{
+  "schema": "knowledge-node-collection/v1",
+  "topic_id": "backprop",
+  "nodes": [
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.chain.intuition",
+      "title": "反向传播的心智模型",
+      "family_key": "scalar_core",
+      "stratum": 1,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "入口",
+        "心智模型"
+      ],
+      "knowledge": {
+        "intuition": "把一次前向计算想成一张流水账单：每一笔「谁用了谁、用了多少」都被记下来。反向传播就是拿着最终那笔总账（损失），沿原路倒着走回去，按每个环节的实际占比，把责任分摊给上游每一个经手人。",
+        "strict_definition": "设复合函数 L = f_n ∘ f_{n-1} ∘ … ∘ f_1(x)，中间量记为 v_0 = x，v_i = f_i(v_{i-1})。反向传播是多元链式法则按 i = n, n-1, …, 1 的逆序展开的形式：以种子 v_bar_n = ∂L/∂v_n = 1 出发，逐个计算 v_bar_{i-1} = v_bar_i · ∂v_i/∂v_{i-1}。它不引入任何新法则，只是把「对每个中间量各写一遍完整链式法则」时重复出现的乘积公共部分复用掉了。",
+        "core_mechanics": "朴素做法是给每个中间量单独写一条完整链式法则；相邻两条之间共享一大截乘积。逆序遍历让后算的那条直接复用先算那条的结果，把重复乘积消掉，代价从随深度平方增长降为随深度线性增长。",
+        "key_formulas": [
+          "v_bar_n = 1",
+          "v_bar_{i-1} = v_bar_i · ∂v_i / ∂v_{i-1}"
+        ],
+        "boundary": "该心智模型只在「单链」结构下成立。若同一个变量被多个下游消费，必须先把这些下游传回的贡献相加，再往上游传。"
+      },
+      "links": {
+        "prerequisites": [],
+        "extends": [
+          "bp.chain.formal"
+        ],
+        "related": [
+          "bp.graph.dag"
+        ]
+      },
+      "exercise_refs": [
+        "ex.chain.intuition.001"
+      ],
+      "plane_coordinate": {
+        "x": 1,
+        "y": 1,
+        "breadth_label": "标量核心",
+        "depth_label": "直觉与心智模型"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.chain.formal",
+      "title": "多元链式法则的形式化",
+      "family_key": "scalar_core",
+      "stratum": 2,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "定义层",
+        "定理"
+      ],
+      "knowledge": {
+        "intuition": "一个变量的微小扰动会沿所有通路传到结果；把每条通路上各环节的局部放大倍率乘起来，再把所有通路加总，就是它对结果的全部影响。",
+        "strict_definition": "设 v_1, …, v_m 是计算图中节点 w 的全部直接前驱，且 w = φ(v_1, …, v_m)。记 v_bar = ∂L/∂v 为 L 对 v 的伴随量。则链式法则的一般形式为：w_bar = ∂L/∂w；对每个前驱 v_j，有 v_bar_j 的入边贡献等于 w_bar · ∂w/∂v_j；而一个节点的伴随量等于它全部后继传来的贡献之和，即 v_bar = Σ_{w ∈ succ(v)} w_bar · ∂w/∂v。这就是图上链式法则的顶点形式。",
+        "core_mechanics": "「沿出边求和、沿每条边乘局部导数」这两条规则合起来构成图上的传递方程。它之所以能一趟算完，是因为图无环：按拓扑逆序处理时，求任一顶点的伴随量所需的全部右端项都已被算好。",
+        "key_formulas": [
+          "v_bar = Σ_{w ∈ succ(v)} w_bar · ∂w / ∂v",
+          "入边贡献(v_j) = w_bar · ∂w / ∂v_j"
+        ],
+        "boundary": "要求每条边对应的局部映射在考察点处可微。ReLU 在 0 处、绝对值函数在 0 处不满足；此时严格意义的偏导不存在，通常求得的是次梯度在非光滑点的某一个取值。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.chain.intuition"
+        ],
+        "extends": [
+          "bp.jac.modes"
+        ],
+        "related": [
+          "bp.graph.dag"
+        ]
+      },
+      "exercise_refs": [
+        "ex.chain.formal.001"
+      ],
+      "plane_coordinate": {
+        "x": 1,
+        "y": 2,
+        "breadth_label": "标量核心",
+        "depth_label": "数学形式化"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.graph.dag",
+      "title": "计算图：有向无环图的形式化",
+      "family_key": "compute_graph",
+      "stratum": 2,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "定义层",
+        "结构"
+      ],
+      "knowledge": {
+        "intuition": "把一次计算摊平成一张只从「原料」流向「成品」的流程图，每个圆点是一次原子运算。只要图里没有环，就一定能排出一个不冲突的计算顺序。",
+        "strict_definition": "计算图是一个有向无环图 G = (V, E)：节点 v ∈ V 是张量变量（输入、参数、中间量或输出值），边 (u → v) ∈ E 表示 v 的值直接依赖于 u。每个非源节点 v 绑定一个原子算子 φ_v，满足 v = φ_v(pred(v))。无环性保证存在拓扑序 τ: V → {1, …, |V|}，使每条边都从序号小的顶点指向序号大的顶点。",
+        "core_mechanics": "无环性是全部机制的支点：它同时保证前向顺序存在、反向（逆拓扑序）顺序存在，以及任一节点被多个下游共享时其梯度等于所有出边贡献之和。这三件事其实只是同一张图的三个不同遍历方向。",
+        "key_formulas": [
+          "pred(v) = { u : (u → v) ∈ E }",
+          "u_bar += v_bar · ∂v/∂u，对所有 v ∈ succ(u)"
+        ],
+        "boundary": "一旦图中出现环（未按时步展开的循环网络、隐式求解层、含 while 的控制流），上述 DAG 定义不再成立。通行做法是按迭代次数或实际执行轨迹把它展开成 DAG，代价是深度不再固定。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.chain.formal"
+        ],
+        "extends": [
+          "bp.graph.tape"
+        ],
+        "related": [
+          "bp.jac.modes"
+        ]
+      },
+      "exercise_refs": [
+        "ex.graph.dag.001"
+      ],
+      "plane_coordinate": {
+        "x": 2,
+        "y": 2,
+        "breadth_label": "计算图结构",
+        "depth_label": "数学形式化"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.graph.tape",
+      "title": "反向模式的执行：tape、拓扑逆序与梯度累加",
+      "family_key": "compute_graph",
+      "stratum": 3,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "实现层",
+        "伪代码"
+      ],
+      "knowledge": {
+        "intuition": "前向跑一遍，顺手把每个运算连同它的输入录成磁带；倒带播放时，每放完一格就把这一格的账单结清，并把钱加到对应账户上——注意是「加」，不是「覆盖」。",
+        "strict_definition": "反向模式自动微分由两趟遍历构成。前向趟按拓扑序计算各顶点值，并把每个算子记录为一个 tape 条目 (φ_v, pred(v), v)。反向趟按拓扑序的逆序遍历 tape 条目：先取该条目输出侧已累积的伴随量 v_bar，再对每个前驱 u 执行累加式更新 u_bar ← u_bar + VJP_{φ_v}(u; v_bar)。初始化为输出节点的伴随量等于 1，其余全为 0。遍历结束时，各节点的伴随量即为所求梯度。",
+        "core_mechanics": "必须是「累加」而非「赋值」：一个变量若有 k 个后继，会被 k 次反向更新命中，每个后继代表一条独立通路。若写成赋值，最终只留下最后一个被遍历到的后继的贡献，等于丢掉其余通路。这也解释了为什么每轮参数更新前必须显式清零梯度累加器。",
+        "key_formulas": [
+          "初始化：out_bar ← 1，其余 v_bar ← 0",
+          "for entry in reverse(tape): 对每个 u ∈ pred(v) 执行 u_bar += VJP_φ(v_bar)"
+        ],
+        "boundary": "反向趟要求前向趟的中间值仍然可访问。原地（in-place）修改被 tape 引用的张量会静默产出错误梯度；显式的内存释放、算子融合或某些显存优化也会让朴素实现失效。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.graph.dag"
+        ],
+        "extends": [
+          "bp.higher.double"
+        ],
+        "related": [
+          "bp.jac.modes"
+        ]
+      },
+      "exercise_refs": [
+        "ex.graph.tape.001"
+      ],
+      "plane_coordinate": {
+        "x": 2,
+        "y": 3,
+        "breadth_label": "计算图结构",
+        "depth_label": "算法与执行"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.jac.modes",
+      "title": "雅可比与前反向模式的代价刻画",
+      "family_key": "jacobian_mode",
+      "stratum": 2,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "定义层",
+        "复杂度"
+      ],
+      "knowledge": {
+        "intuition": "如果把每一步都摊开成一个大矩阵，前向模式是不断在右边乘上一个向量，反向模式是不断在左边乘上一个向量。两种顺序，代价可以差好几个数量级。",
+        "strict_definition": "对映射 f: R^n → R^m，雅可比矩阵 J ∈ R^{m×n} 满足 J_ij = ∂f_i/∂x_j。前向模式（JVP）计算 J r，即沿方向 r ∈ R^n 的方向导数；反向模式（VJP）计算 sᵀ J，即以 s ∈ R^m 为种子的伴随 sᵀ J = ∂(sᵀ f)/∂x。一次前向模式调用给出雅可比的一列，一次反向模式调用给出雅可比的一行。",
+        "core_mechanics": "求完整雅可比需要 n 次前向调用或 m 次反向调用。因此当 m ≪ n 时反向模式压倒性占优——深度学习里标量损失对海量参数求导正是 m = 1 的极端情形；当 m ≫ n 时应选前向模式。两种模式单次调用的代价都与求一次 f 同阶，最多相差一个通常在 2 到 4 倍之间的常数因子。",
+        "key_formulas": [
+          "JVP: J r，r ∈ R^n",
+          "VJP: sᵀ J，s ∈ R^m",
+          "求全雅可比代价 = min(n, m) × O(cost(f))"
+        ],
+        "boundary": "「一次 VJP 与一次前向同阶」的前提是反向趟能直接读到前向趟的中间值。若显存放不下必须重算或重材质化，时间代价就不再同阶，这正是更高机制层要处理的问题。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.chain.formal"
+        ],
+        "extends": [
+          "bp.jac.checkpoint"
+        ],
+        "related": [
+          "bp.layer.matmul"
+        ]
+      },
+      "exercise_refs": [
+        "ex.jac.modes.001"
+      ],
+      "plane_coordinate": {
+        "x": 3,
+        "y": 2,
+        "breadth_label": "雅可比与微分模式",
+        "depth_label": "数学形式化"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.layer.matmul",
+      "title": "全连接层的矩阵形式反向传播",
+      "family_key": "matrix_layer",
+      "stratum": 2,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "定义层",
+        "核心公式"
+      ],
+      "knowledge": {
+        "intuition": "梯度必须和它求导的那个对象长得一模一样。这个「形状一致」的硬要求几乎不给人留选择余地——矩阵乘法只剩下唯一的拼法。",
+        "strict_definition": "在全连接层 Y = XW + b 中，X ∈ R^{B×D}，W ∈ R^{D×M}，b ∈ R^M 按行广播。给定输出端的伴随矩阵 Y_bar = ∂L/∂Y ∈ R^{B×M}，则有：W_bar = ∂L/∂W = Xᵀ Y_bar，X_bar = ∂L/∂X = Y_bar Wᵀ，b_bar = Yᵀ 1，其中最后一个是沿批维度的逐列求和。偏置之所以要求和，是因为同一个偏置对批次内每个样本都贡献了一次。",
+        "core_mechanics": "维度相容原则支配一切：W_bar 必须与 W 同为 (D, M)，而用手头的 (B, D) 和 (B, M) 凑出 (D, M)，唯一的线性组合就是把 X 转置后左乘，即 Xᵀ Y_bar。其物理含义是批内样本梯度的累加：每个样本贡献一次外积，批量把它们加起来。",
+        "key_formulas": [
+          "W_bar = Xᵀ Y_bar",
+          "X_bar = Y_bar Wᵀ",
+          "b_bar = Y_barᵀ 1_B"
+        ],
+        "boundary": "该形式默认实数域且无需共轭；复数域下应把 Xᵀ 换成共轭转置 Xᴴ。此外当计算图中含 BatchNorm、Dropout 等依赖批次统计量或随机性的算子时，上述闭式不再单独决定参数梯度。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.jac.modes"
+        ],
+        "extends": [],
+        "related": [
+          "bp.layer.stability"
+        ]
+      },
+      "exercise_refs": [
+        "ex.layer.matmul.001"
+      ],
+      "plane_coordinate": {
+        "x": 4,
+        "y": 2,
+        "breadth_label": "矩阵层与张量层",
+        "depth_label": "数学形式化"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.layer.stability",
+      "title": "边界：梯度消失、爆炸与数值下溢",
+      "family_key": "matrix_layer",
+      "stratum": 4,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "边界层",
+        "数值"
+      ],
+      "knowledge": {
+        "intuition": "反向传播本质上是一条连乘链。把一长串数连乘，结果不是趋近于 0 就是飞上天，中间地带非常窄。",
+        "strict_definition": "对 n 层链式复合，梯度含有 Π_{i=1}^{n} J_i 形式的连乘，其中 J_i 是第 i 层的局部雅可比。若各 J_i 的谱范数普遍小于 1，则该乘积的范数随 n 指数衰减，称梯度消失；若普遍大于 1，则指数增长，称梯度爆炸。两者都是连乘结构自身的性质，与具体任务无关。",
+        "core_mechanics": "连乘之所以危险，是因为每一层的局部放大倍率会在深度上累积。对于饱和激活（tanh 或 sigmoid 在 |z| 大处导数趋近 0）或权重谱半径偏离 1 的情形，无论初始值多合理，深度足够时都会进入消失或爆炸区。主流对策不是消除连乘，而是改变乘子的谱性质：残差连接在每个乘子中引入接近 1 的恒等项，归一化层则把激活尺度固定住。",
+        "key_formulas": [
+          "‖∂L/∂x_0‖ ≤ ( Π_{i=1}^{n} ‖J_i‖ ) · ‖x_bar_n‖",
+          "tanh 与 sigmoid 满足 σ'(z) → 0，当 |z| → ∞"
+        ],
+        "boundary": "半精度下还存在独立于上述分析的下溢问题：梯度本身非零，但小于半精度最小正规数时被直接刷成 0。这时不是「消失」而是「量化抹零」，需要用损失缩放处理，与谱分析属于两套不同机制。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.layer.matmul",
+          "bp.chain.formal"
+        ],
+        "extends": [],
+        "related": [
+          "bp.higher.double"
+        ]
+      },
+      "exercise_refs": [
+        "ex.layer.stability.001"
+      ],
+      "plane_coordinate": {
+        "x": 4,
+        "y": 4,
+        "breadth_label": "矩阵层与张量层",
+        "depth_label": "边界与失效"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.higher.double",
+      "title": "高阶导：对梯度再求一次梯度",
+      "family_key": "higher_order",
+      "stratum": 3,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "实现层",
+        "二阶"
+      ],
+      "knowledge": {
+        "intuition": "把「求梯度」这个动作本身也当成一次普通计算录进磁带，然后对这条更长的磁带再倒放一遍，二阶导就出来了。",
+        "strict_definition": "记 g(x) = ∇f(x)。则 Hessian 矩阵 ∇²f(x) 就是梯度映射 g 的雅可比 J_g(x)。由于 g 本身由一次反向模式求得，要对它再求一次梯度，等价于把第一次反向过程也纳入计算图、在其上再套一层 tape，即嵌套微分（double-backward）。得到 Hessian-向量积 Hv 的成本与求一次梯度同阶；显式构造完整 Hessian 则还要再乘以输入维数 n。",
+        "core_mechanics": "关键在于第一次反向过程本身必须以可微方式被记录下来，而不能是黑盒数值回流。因此只有「以可微方式实现的自动微分」才支持高阶导；数值差分、以及 stop_gradient / detach 之类的算子会在此处把链路切断。求 Hv 时最省的是 forward-over-reverse：外层用前向模式传播扰动方向 v，内层跑一次反向模式即得 Hv。",
+        "key_formulas": [
+          "∇²f(x) = J_{∇f}(x)",
+          "Hv = ∇_x ⟨∇f(x), v⟩",
+          "cost(Hv) = O(cost(f))，cost(H) = n · O(cost(f))"
+        ],
+        "boundary": "二阶导要求目标函数二阶可微。使用 ReLU 的网络其一阶导是分片常数，Hessian 在绝大多数地方为零、在断点处根本不存在，此时讨论 Hessian 在数学上需要另行约定。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.graph.tape",
+          "bp.jac.modes"
+        ],
+        "extends": [],
+        "related": [
+          "bp.layer.stability"
+        ]
+      },
+      "exercise_refs": [
+        "ex.higher.double.001"
+      ],
+      "plane_coordinate": {
+        "x": 5,
+        "y": 3,
+        "breadth_label": "高阶导",
+        "depth_label": "算法与执行"
+      }
+    },
+    {
+      "schema": "knowledge-node/v1",
+      "id": "bp.jac.checkpoint",
+      "title": "极限：内存-时间权衡与重算下界",
+      "family_key": "jacobian_mode",
+      "stratum": 5,
+      "status": "published",
+      "version": 1,
+      "updated_at": "2026-10-29",
+      "tags": [
+        "极限层",
+        "复杂度"
+      ],
+      "knowledge": {
+        "intuition": "反向传播的空间不是免费的：为能倒着结账，你必须先把整本账本留着。不留，就得事后凭原始凭证重算。这两者之间存在不可绕开的兑换关系。",
+        "strict_definition": "对深度为 n 的链式计算图，朴素反向模式的峰值内存为 O(n)（须保留全部中间量），时间为 O(n)。若在长度为 n 的链上均匀放置 O(√n) 个检查点、并在检查点之间按需重算，则时间仍为 O(n) 而峰值内存降至 O(√n)。更一般地，在只允许保留 c 个中间结果的约束下，重算次数存在组合意义下的下界：想要同时把时间和内存都压到各自的理论最优是不可能的，二者之间是一条严格的权衡曲线。",
+        "core_mechanics": "这一权衡的根源在信息本身：反向趟需要前向趟的中间状态才能算出局部导数，而状态要么被保存（占内存），要么被丢弃后重算（占时间）。保存与重算的二元性，是所有 checkpointing 与重材质化算法共同的运作面。",
+        "key_formulas": [
+          "朴素：内存 O(n)，时间 O(n)",
+          "均匀 √n 检查点：内存 O(√n)，时间 O(n)"
+        ],
+        "boundary": "上述分析把「读写一个中间值」与「执行一个算子」视为同阶成本。当算子受限于内存带宽（多数逐元素算子如此）或跨设备网络带宽时，二者比值会偏离 1，最优检查点策略随之改变；渐进界依然成立，但常数量级会明显变化。"
+      },
+      "links": {
+        "prerequisites": [
+          "bp.jac.modes",
+          "bp.graph.tape"
+        ],
+        "extends": [],
+        "related": [
+          "bp.higher.double"
+        ]
+      },
+      "exercise_refs": [
+        "ex.jac.checkpoint.001"
+      ],
+      "plane_coordinate": {
+        "x": 3,
+        "y": 5,
+        "breadth_label": "雅可比与微分模式",
+        "depth_label": "资源与理论极限"
+      }
+    }
+  ]
+}

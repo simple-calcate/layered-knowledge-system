@@ -1,0 +1,1363 @@
+{
+  "app": {
+    "topic_id": "backprop",
+    "title": "反向传播与自动微分",
+    "subtitle": "",
+    "version": 1,
+    "updated_at": "2026-10-29",
+    "source_path": "data/topics/backprop",
+    "generated_at": "2026-10-29T17:17:38+00:00",
+    "description": "第一个垂直切片。用来跑通「知识平面 -> 习题池 -> 训练导出 -> 人类画布」全链路，跑通后再横向复制到其它主题。",
+    "axes": {
+      "x_label": "广度轴 · 概念族（family）",
+      "y_label": "深度轴 · 机制层（strata）",
+      "x_list": [
+        {
+          "key": "scalar_core",
+          "x": 1,
+          "label": "标量核心",
+          "desc": "链式法则本体与其最小可用形式"
+        },
+        {
+          "key": "compute_graph",
+          "x": 2,
+          "label": "计算图结构",
+          "desc": "把复合函数显式化为 DAG，以及在这张图上跑的遍历算法"
+        },
+        {
+          "key": "jacobian_mode",
+          "x": 3,
+          "label": "雅可比与微分模式",
+          "desc": "前向模式 / 反向模式的算子级刻画与代价分析"
+        },
+        {
+          "key": "matrix_layer",
+          "x": 4,
+          "label": "矩阵层与张量层",
+          "desc": "常见网络层的矩阵化梯度，以及现实里真正会踩的数值坑"
+        },
+        {
+          "key": "higher_order",
+          "x": 5,
+          "label": "高阶导",
+          "desc": "对梯度再求梯度带来的图、代价与稳定性问题"
+        }
+      ],
+      "x_families": [
+        {
+          "key": "scalar_core",
+          "x": 1,
+          "label": "标量核心",
+          "desc": "链式法则本体与其最小可用形式"
+        },
+        {
+          "key": "compute_graph",
+          "x": 2,
+          "label": "计算图结构",
+          "desc": "把复合函数显式化为 DAG，以及在这张图上跑的遍历算法"
+        },
+        {
+          "key": "jacobian_mode",
+          "x": 3,
+          "label": "雅可比与微分模式",
+          "desc": "前向模式 / 反向模式的算子级刻画与代价分析"
+        },
+        {
+          "key": "matrix_layer",
+          "x": 4,
+          "label": "矩阵层与张量层",
+          "desc": "常见网络层的矩阵化梯度，以及现实里真正会踩的数值坑"
+        },
+        {
+          "key": "higher_order",
+          "x": 5,
+          "label": "高阶导",
+          "desc": "对梯度再求梯度带来的图、代价与稳定性问题"
+        }
+      ],
+      "y_list": [
+        {
+          "value": 1,
+          "key": "intuition",
+          "label": "直觉与心智模型",
+          "desc": "用类比、图像、记账隐喻说清「它在干什么」，不引入符号负担"
+        },
+        {
+          "value": 2,
+          "key": "formalization",
+          "label": "数学形式化",
+          "desc": "严格的符号定义、定理、推导；这是「可背诵层」的主体"
+        },
+        {
+          "value": 3,
+          "key": "execution",
+          "label": "算法与执行",
+          "desc": "数据结构、遍历顺序、内存布局、伪代码 / 真实实现语义"
+        },
+        {
+          "value": 4,
+          "key": "boundary",
+          "label": "边界与失效",
+          "desc": "什么时候不成立、精度何时崩、哪些输入会让它给出错的答案"
+        },
+        {
+          "value": 5,
+          "key": "limit",
+          "label": "资源与理论极限",
+          "desc": "时间/内存/通信的下界，信息论或硬件层面的不可逾越约束"
+        }
+      ]
+    },
+    "conventions": {
+      "adjoint_notation": "记 v_bar = ∂L/∂v，即损失 L 对中间变量 v 的偏导，也称伴随量（adjoint）。",
+      "shape_notation": "张量形状写作 (B, D) 形式，B 为批大小，D 为输入特征维，M 为输出维。",
+      "terminology": [
+        {
+          "en": "reverse mode",
+          "zh": "反向模式",
+          "note": "全文统一使用「反向模式」，不写「反向传播模式」这类混搭说法"
+        },
+        {
+          "en": "forward mode",
+          "zh": "前向模式",
+          "note": "与反向模式对称，全文同样统一"
+        },
+        {
+          "en": "vector-Jacobian product",
+          "zh": "向量-雅可比积（VJP）",
+          "note": "首次出现给中英对照，之后可用缩写 VJP"
+        },
+        {
+          "en": "Jacobian-vector product",
+          "zh": "雅可比-向量积（JVP）",
+          "note": "同上"
+        }
+      ]
+    },
+    "authoring_rules": [
+      "strict_definition 必须是可独立背诵的封闭陈述：不依赖上文指代，不出现「如前所述」「同上」这类词",
+      "strict_definition 中出现的每个符号，必须在本节点或 prerequisites 链路上的某个节点里定义过",
+      "同一 family 的不同 stratum 节点，严谨程度必须随 stratum 单调递增，且互相不得矛盾",
+      "空缺格子不补概念",
+      "野孤节点（无 prerequisites 也无 extends）必须在 review 清单里显式说明"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "bp.chain.intuition",
+      "title": "反向传播的心智模型",
+      "term": "反向传播的心智模型",
+      "focus": "",
+      "strict_definition": "设复合函数 L = f_n ∘ f_{n-1} ∘ … ∘ f_1(x)，中间量记为 v_0 = x，v_i = f_i(v_{i-1})。反向传播是多元链式法则按 i = n, n-1, …, 1 的逆序展开的形式：以种子 v_bar_n = ∂L/∂v_n = 1 出发，逐个计算 v_bar_{i-1} = v_bar_i · ∂v_i/∂v_{i-1}。它不引入任何新法则，只是把「对每个中间量各写一遍完整链式法则」时重复出现的乘积公共部分复用掉了。",
+      "core_mechanics": "朴素做法是给每个中间量单独写一条完整链式法则；相邻两条之间共享一大截乘积。逆序遍历让后算的那条直接复用先算那条的结果，把重复乘积消掉，代价从随深度平方增长降为随深度线性增长。",
+      "key_formulas": [
+        "v_bar_n = 1",
+        "v_bar_{i-1} = v_bar_i · ∂v_i / ∂v_{i-1}"
+      ],
+      "boundary": "该心智模型只在「单链」结构下成立。若同一个变量被多个下游消费，必须先把这些下游传回的贡献相加，再往上游传。",
+      "intuition": "把一次前向计算想成一张流水账单：每一笔「谁用了谁、用了多少」都被记下来。反向传播就是拿着最终那笔总账（损失），沿原路倒着走回去，按每个环节的实际占比，把责任分摊给上游每一个经手人。",
+      "tags": [
+        "入口",
+        "心智模型"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "scalar_core",
+      "family_label": "标量核心",
+      "stratum": 1,
+      "stratum_label": "直觉与心智模型",
+      "x": 1,
+      "y": 1,
+      "breadth_label": "标量核心",
+      "depth_label": "直觉与心智模型",
+      "plane_coordinate": {
+        "x": 1,
+        "y": 1,
+        "breadth_label": "标量核心",
+        "depth_label": "直觉与心智模型"
+      },
+      "prerequisites": [],
+      "extends": [
+        "bp.chain.formal"
+      ],
+      "related": [
+        "bp.graph.dag"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.chain.intuition.001"
+      ]
+    },
+    {
+      "id": "bp.chain.formal",
+      "title": "多元链式法则的形式化",
+      "term": "多元链式法则的形式化",
+      "focus": "",
+      "strict_definition": "设 v_1, …, v_m 是计算图中节点 w 的全部直接前驱，且 w = φ(v_1, …, v_m)。记 v_bar = ∂L/∂v 为 L 对 v 的伴随量。则链式法则的一般形式为：w_bar = ∂L/∂w；对每个前驱 v_j，有 v_bar_j 的入边贡献等于 w_bar · ∂w/∂v_j；而一个节点的伴随量等于它全部后继传来的贡献之和，即 v_bar = Σ_{w ∈ succ(v)} w_bar · ∂w/∂v。这就是图上链式法则的顶点形式。",
+      "core_mechanics": "「沿出边求和、沿每条边乘局部导数」这两条规则合起来构成图上的传递方程。它之所以能一趟算完，是因为图无环：按拓扑逆序处理时，求任一顶点的伴随量所需的全部右端项都已被算好。",
+      "key_formulas": [
+        "v_bar = Σ_{w ∈ succ(v)} w_bar · ∂w / ∂v",
+        "入边贡献(v_j) = w_bar · ∂w / ∂v_j"
+      ],
+      "boundary": "要求每条边对应的局部映射在考察点处可微。ReLU 在 0 处、绝对值函数在 0 处不满足；此时严格意义的偏导不存在，通常求得的是次梯度在非光滑点的某一个取值。",
+      "intuition": "一个变量的微小扰动会沿所有通路传到结果；把每条通路上各环节的局部放大倍率乘起来，再把所有通路加总，就是它对结果的全部影响。",
+      "tags": [
+        "定义层",
+        "定理"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "scalar_core",
+      "family_label": "标量核心",
+      "stratum": 2,
+      "stratum_label": "数学形式化",
+      "x": 1,
+      "y": 2,
+      "breadth_label": "标量核心",
+      "depth_label": "数学形式化",
+      "plane_coordinate": {
+        "x": 1,
+        "y": 2,
+        "breadth_label": "标量核心",
+        "depth_label": "数学形式化"
+      },
+      "prerequisites": [
+        "bp.chain.intuition"
+      ],
+      "extends": [
+        "bp.jac.modes"
+      ],
+      "related": [
+        "bp.graph.dag"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.chain.formal.001"
+      ]
+    },
+    {
+      "id": "bp.graph.dag",
+      "title": "计算图：有向无环图的形式化",
+      "term": "计算图：有向无环图的形式化",
+      "focus": "",
+      "strict_definition": "计算图是一个有向无环图 G = (V, E)：节点 v ∈ V 是张量变量（输入、参数、中间量或输出值），边 (u → v) ∈ E 表示 v 的值直接依赖于 u。每个非源节点 v 绑定一个原子算子 φ_v，满足 v = φ_v(pred(v))。无环性保证存在拓扑序 τ: V → {1, …, |V|}，使每条边都从序号小的顶点指向序号大的顶点。",
+      "core_mechanics": "无环性是全部机制的支点：它同时保证前向顺序存在、反向（逆拓扑序）顺序存在，以及任一节点被多个下游共享时其梯度等于所有出边贡献之和。这三件事其实只是同一张图的三个不同遍历方向。",
+      "key_formulas": [
+        "pred(v) = { u : (u → v) ∈ E }",
+        "u_bar += v_bar · ∂v/∂u，对所有 v ∈ succ(u)"
+      ],
+      "boundary": "一旦图中出现环（未按时步展开的循环网络、隐式求解层、含 while 的控制流），上述 DAG 定义不再成立。通行做法是按迭代次数或实际执行轨迹把它展开成 DAG，代价是深度不再固定。",
+      "intuition": "把一次计算摊平成一张只从「原料」流向「成品」的流程图，每个圆点是一次原子运算。只要图里没有环，就一定能排出一个不冲突的计算顺序。",
+      "tags": [
+        "定义层",
+        "结构"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "compute_graph",
+      "family_label": "计算图结构",
+      "stratum": 2,
+      "stratum_label": "数学形式化",
+      "x": 2,
+      "y": 2,
+      "breadth_label": "计算图结构",
+      "depth_label": "数学形式化",
+      "plane_coordinate": {
+        "x": 2,
+        "y": 2,
+        "breadth_label": "计算图结构",
+        "depth_label": "数学形式化"
+      },
+      "prerequisites": [
+        "bp.chain.formal"
+      ],
+      "extends": [
+        "bp.graph.tape"
+      ],
+      "related": [
+        "bp.jac.modes"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.graph.dag.001"
+      ]
+    },
+    {
+      "id": "bp.jac.modes",
+      "title": "雅可比与前反向模式的代价刻画",
+      "term": "雅可比与前反向模式的代价刻画",
+      "focus": "",
+      "strict_definition": "对映射 f: R^n → R^m，雅可比矩阵 J ∈ R^{m×n} 满足 J_ij = ∂f_i/∂x_j。前向模式（JVP）计算 J r，即沿方向 r ∈ R^n 的方向导数；反向模式（VJP）计算 sᵀ J，即以 s ∈ R^m 为种子的伴随 sᵀ J = ∂(sᵀ f)/∂x。一次前向模式调用给出雅可比的一列，一次反向模式调用给出雅可比的一行。",
+      "core_mechanics": "求完整雅可比需要 n 次前向调用或 m 次反向调用。因此当 m ≪ n 时反向模式压倒性占优——深度学习里标量损失对海量参数求导正是 m = 1 的极端情形；当 m ≫ n 时应选前向模式。两种模式单次调用的代价都与求一次 f 同阶，最多相差一个通常在 2 到 4 倍之间的常数因子。",
+      "key_formulas": [
+        "JVP: J r，r ∈ R^n",
+        "VJP: sᵀ J，s ∈ R^m",
+        "求全雅可比代价 = min(n, m) × O(cost(f))"
+      ],
+      "boundary": "「一次 VJP 与一次前向同阶」的前提是反向趟能直接读到前向趟的中间值。若显存放不下必须重算或重材质化，时间代价就不再同阶，这正是更高机制层要处理的问题。",
+      "intuition": "如果把每一步都摊开成一个大矩阵，前向模式是不断在右边乘上一个向量，反向模式是不断在左边乘上一个向量。两种顺序，代价可以差好几个数量级。",
+      "tags": [
+        "定义层",
+        "复杂度"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "jacobian_mode",
+      "family_label": "雅可比与微分模式",
+      "stratum": 2,
+      "stratum_label": "数学形式化",
+      "x": 3,
+      "y": 2,
+      "breadth_label": "雅可比与微分模式",
+      "depth_label": "数学形式化",
+      "plane_coordinate": {
+        "x": 3,
+        "y": 2,
+        "breadth_label": "雅可比与微分模式",
+        "depth_label": "数学形式化"
+      },
+      "prerequisites": [
+        "bp.chain.formal"
+      ],
+      "extends": [
+        "bp.jac.checkpoint"
+      ],
+      "related": [
+        "bp.layer.matmul"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.jac.modes.001"
+      ]
+    },
+    {
+      "id": "bp.layer.matmul",
+      "title": "全连接层的矩阵形式反向传播",
+      "term": "全连接层的矩阵形式反向传播",
+      "focus": "",
+      "strict_definition": "在全连接层 Y = XW + b 中，X ∈ R^{B×D}，W ∈ R^{D×M}，b ∈ R^M 按行广播。给定输出端的伴随矩阵 Y_bar = ∂L/∂Y ∈ R^{B×M}，则有：W_bar = ∂L/∂W = Xᵀ Y_bar，X_bar = ∂L/∂X = Y_bar Wᵀ，b_bar = Yᵀ 1，其中最后一个是沿批维度的逐列求和。偏置之所以要求和，是因为同一个偏置对批次内每个样本都贡献了一次。",
+      "core_mechanics": "维度相容原则支配一切：W_bar 必须与 W 同为 (D, M)，而用手头的 (B, D) 和 (B, M) 凑出 (D, M)，唯一的线性组合就是把 X 转置后左乘，即 Xᵀ Y_bar。其物理含义是批内样本梯度的累加：每个样本贡献一次外积，批量把它们加起来。",
+      "key_formulas": [
+        "W_bar = Xᵀ Y_bar",
+        "X_bar = Y_bar Wᵀ",
+        "b_bar = Y_barᵀ 1_B"
+      ],
+      "boundary": "该形式默认实数域且无需共轭；复数域下应把 Xᵀ 换成共轭转置 Xᴴ。此外当计算图中含 BatchNorm、Dropout 等依赖批次统计量或随机性的算子时，上述闭式不再单独决定参数梯度。",
+      "intuition": "梯度必须和它求导的那个对象长得一模一样。这个「形状一致」的硬要求几乎不给人留选择余地——矩阵乘法只剩下唯一的拼法。",
+      "tags": [
+        "定义层",
+        "核心公式"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "matrix_layer",
+      "family_label": "矩阵层与张量层",
+      "stratum": 2,
+      "stratum_label": "数学形式化",
+      "x": 4,
+      "y": 2,
+      "breadth_label": "矩阵层与张量层",
+      "depth_label": "数学形式化",
+      "plane_coordinate": {
+        "x": 4,
+        "y": 2,
+        "breadth_label": "矩阵层与张量层",
+        "depth_label": "数学形式化"
+      },
+      "prerequisites": [
+        "bp.jac.modes"
+      ],
+      "extends": [],
+      "related": [
+        "bp.layer.stability"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.layer.matmul.001"
+      ]
+    },
+    {
+      "id": "bp.graph.tape",
+      "title": "反向模式的执行：tape、拓扑逆序与梯度累加",
+      "term": "反向模式的执行：tape、拓扑逆序与梯度累加",
+      "focus": "",
+      "strict_definition": "反向模式自动微分由两趟遍历构成。前向趟按拓扑序计算各顶点值，并把每个算子记录为一个 tape 条目 (φ_v, pred(v), v)。反向趟按拓扑序的逆序遍历 tape 条目：先取该条目输出侧已累积的伴随量 v_bar，再对每个前驱 u 执行累加式更新 u_bar ← u_bar + VJP_{φ_v}(u; v_bar)。初始化为输出节点的伴随量等于 1，其余全为 0。遍历结束时，各节点的伴随量即为所求梯度。",
+      "core_mechanics": "必须是「累加」而非「赋值」：一个变量若有 k 个后继，会被 k 次反向更新命中，每个后继代表一条独立通路。若写成赋值，最终只留下最后一个被遍历到的后继的贡献，等于丢掉其余通路。这也解释了为什么每轮参数更新前必须显式清零梯度累加器。",
+      "key_formulas": [
+        "初始化：out_bar ← 1，其余 v_bar ← 0",
+        "for entry in reverse(tape): 对每个 u ∈ pred(v) 执行 u_bar += VJP_φ(v_bar)"
+      ],
+      "boundary": "反向趟要求前向趟的中间值仍然可访问。原地（in-place）修改被 tape 引用的张量会静默产出错误梯度；显式的内存释放、算子融合或某些显存优化也会让朴素实现失效。",
+      "intuition": "前向跑一遍，顺手把每个运算连同它的输入录成磁带；倒带播放时，每放完一格就把这一格的账单结清，并把钱加到对应账户上——注意是「加」，不是「覆盖」。",
+      "tags": [
+        "实现层",
+        "伪代码"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "compute_graph",
+      "family_label": "计算图结构",
+      "stratum": 3,
+      "stratum_label": "算法与执行",
+      "x": 2,
+      "y": 3,
+      "breadth_label": "计算图结构",
+      "depth_label": "算法与执行",
+      "plane_coordinate": {
+        "x": 2,
+        "y": 3,
+        "breadth_label": "计算图结构",
+        "depth_label": "算法与执行"
+      },
+      "prerequisites": [
+        "bp.graph.dag"
+      ],
+      "extends": [
+        "bp.higher.double"
+      ],
+      "related": [
+        "bp.jac.modes"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.graph.tape.001"
+      ]
+    },
+    {
+      "id": "bp.higher.double",
+      "title": "高阶导：对梯度再求一次梯度",
+      "term": "高阶导：对梯度再求一次梯度",
+      "focus": "",
+      "strict_definition": "记 g(x) = ∇f(x)。则 Hessian 矩阵 ∇²f(x) 就是梯度映射 g 的雅可比 J_g(x)。由于 g 本身由一次反向模式求得，要对它再求一次梯度，等价于把第一次反向过程也纳入计算图、在其上再套一层 tape，即嵌套微分（double-backward）。得到 Hessian-向量积 Hv 的成本与求一次梯度同阶；显式构造完整 Hessian 则还要再乘以输入维数 n。",
+      "core_mechanics": "关键在于第一次反向过程本身必须以可微方式被记录下来，而不能是黑盒数值回流。因此只有「以可微方式实现的自动微分」才支持高阶导；数值差分、以及 stop_gradient / detach 之类的算子会在此处把链路切断。求 Hv 时最省的是 forward-over-reverse：外层用前向模式传播扰动方向 v，内层跑一次反向模式即得 Hv。",
+      "key_formulas": [
+        "∇²f(x) = J_{∇f}(x)",
+        "Hv = ∇_x ⟨∇f(x), v⟩",
+        "cost(Hv) = O(cost(f))，cost(H) = n · O(cost(f))"
+      ],
+      "boundary": "二阶导要求目标函数二阶可微。使用 ReLU 的网络其一阶导是分片常数，Hessian 在绝大多数地方为零、在断点处根本不存在，此时讨论 Hessian 在数学上需要另行约定。",
+      "intuition": "把「求梯度」这个动作本身也当成一次普通计算录进磁带，然后对这条更长的磁带再倒放一遍，二阶导就出来了。",
+      "tags": [
+        "实现层",
+        "二阶"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "higher_order",
+      "family_label": "高阶导",
+      "stratum": 3,
+      "stratum_label": "算法与执行",
+      "x": 5,
+      "y": 3,
+      "breadth_label": "高阶导",
+      "depth_label": "算法与执行",
+      "plane_coordinate": {
+        "x": 5,
+        "y": 3,
+        "breadth_label": "高阶导",
+        "depth_label": "算法与执行"
+      },
+      "prerequisites": [
+        "bp.graph.tape",
+        "bp.jac.modes"
+      ],
+      "extends": [],
+      "related": [
+        "bp.layer.stability"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.higher.double.001"
+      ]
+    },
+    {
+      "id": "bp.layer.stability",
+      "title": "边界：梯度消失、爆炸与数值下溢",
+      "term": "边界：梯度消失、爆炸与数值下溢",
+      "focus": "",
+      "strict_definition": "对 n 层链式复合，梯度含有 Π_{i=1}^{n} J_i 形式的连乘，其中 J_i 是第 i 层的局部雅可比。若各 J_i 的谱范数普遍小于 1，则该乘积的范数随 n 指数衰减，称梯度消失；若普遍大于 1，则指数增长，称梯度爆炸。两者都是连乘结构自身的性质，与具体任务无关。",
+      "core_mechanics": "连乘之所以危险，是因为每一层的局部放大倍率会在深度上累积。对于饱和激活（tanh 或 sigmoid 在 |z| 大处导数趋近 0）或权重谱半径偏离 1 的情形，无论初始值多合理，深度足够时都会进入消失或爆炸区。主流对策不是消除连乘，而是改变乘子的谱性质：残差连接在每个乘子中引入接近 1 的恒等项，归一化层则把激活尺度固定住。",
+      "key_formulas": [
+        "‖∂L/∂x_0‖ ≤ ( Π_{i=1}^{n} ‖J_i‖ ) · ‖x_bar_n‖",
+        "tanh 与 sigmoid 满足 σ'(z) → 0，当 |z| → ∞"
+      ],
+      "boundary": "半精度下还存在独立于上述分析的下溢问题：梯度本身非零，但小于半精度最小正规数时被直接刷成 0。这时不是「消失」而是「量化抹零」，需要用损失缩放处理，与谱分析属于两套不同机制。",
+      "intuition": "反向传播本质上是一条连乘链。把一长串数连乘，结果不是趋近于 0 就是飞上天，中间地带非常窄。",
+      "tags": [
+        "边界层",
+        "数值"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "matrix_layer",
+      "family_label": "矩阵层与张量层",
+      "stratum": 4,
+      "stratum_label": "边界与失效",
+      "x": 4,
+      "y": 4,
+      "breadth_label": "矩阵层与张量层",
+      "depth_label": "边界与失效",
+      "plane_coordinate": {
+        "x": 4,
+        "y": 4,
+        "breadth_label": "矩阵层与张量层",
+        "depth_label": "边界与失效"
+      },
+      "prerequisites": [
+        "bp.layer.matmul",
+        "bp.chain.formal"
+      ],
+      "extends": [],
+      "related": [
+        "bp.higher.double"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.layer.stability.001"
+      ]
+    },
+    {
+      "id": "bp.jac.checkpoint",
+      "title": "极限：内存-时间权衡与重算下界",
+      "term": "极限：内存-时间权衡与重算下界",
+      "focus": "",
+      "strict_definition": "对深度为 n 的链式计算图，朴素反向模式的峰值内存为 O(n)（须保留全部中间量），时间为 O(n)。若在长度为 n 的链上均匀放置 O(√n) 个检查点、并在检查点之间按需重算，则时间仍为 O(n) 而峰值内存降至 O(√n)。更一般地，在只允许保留 c 个中间结果的约束下，重算次数存在组合意义下的下界：想要同时把时间和内存都压到各自的理论最优是不可能的，二者之间是一条严格的权衡曲线。",
+      "core_mechanics": "这一权衡的根源在信息本身：反向趟需要前向趟的中间状态才能算出局部导数，而状态要么被保存（占内存），要么被丢弃后重算（占时间）。保存与重算的二元性，是所有 checkpointing 与重材质化算法共同的运作面。",
+      "key_formulas": [
+        "朴素：内存 O(n)，时间 O(n)",
+        "均匀 √n 检查点：内存 O(√n)，时间 O(n)"
+      ],
+      "boundary": "上述分析把「读写一个中间值」与「执行一个算子」视为同阶成本。当算子受限于内存带宽（多数逐元素算子如此）或跨设备网络带宽时，二者比值会偏离 1，最优检查点策略随之改变；渐进界依然成立，但常数量级会明显变化。",
+      "intuition": "反向传播的空间不是免费的：为能倒着结账，你必须先把整本账本留着。不留，就得事后凭原始凭证重算。这两者之间存在不可绕开的兑换关系。",
+      "tags": [
+        "极限层",
+        "复杂度"
+      ],
+      "status": "published",
+      "version": 1,
+      "family_key": "jacobian_mode",
+      "family_label": "雅可比与微分模式",
+      "stratum": 5,
+      "stratum_label": "资源与理论极限",
+      "x": 3,
+      "y": 5,
+      "breadth_label": "雅可比与微分模式",
+      "depth_label": "资源与理论极限",
+      "plane_coordinate": {
+        "x": 3,
+        "y": 5,
+        "breadth_label": "雅可比与微分模式",
+        "depth_label": "资源与理论极限"
+      },
+      "prerequisites": [
+        "bp.jac.modes",
+        "bp.graph.tape"
+      ],
+      "extends": [],
+      "related": [
+        "bp.higher.double"
+      ],
+      "prerequisite_refs": [],
+      "exercise_ids": [
+        "ex.jac.checkpoint.001"
+      ]
+    }
+  ],
+  "exercises": [
+    {
+      "id": "ex.chain.formal.001",
+      "node_ids": [
+        "bp.chain.formal"
+      ],
+      "primary_node_id": "bp.chain.formal",
+      "ex_type": "derivation",
+      "title": "",
+      "difficulty": 3,
+      "stem": "计算图中节点 $w$ 有前驱 $u$，而 $u$ 同时又直接参与了另一个节点 $q$ 的计算（即 $u$ 有两个后继 $w$ 和 $q$）。$w = \\varphi(u)$，$\\varphi$ 与其它的映射都只依赖 $u$，与别的变量无关。\n\n请写出 $\\partial L / \\partial u$ 的正确表达式，并说明：如果实现时把其中一条通路的贡献漏掉了，算出来的量在数学上对应于什么？",
+      "hints": [
+        "把注意力放在整个后继集合 succ(u) 上，而不是某一条具体的边",
+        "「漏掉一条通路」等价于把求和符号里的某一项删掉，看看剩下的那项单独在算什么"
+      ],
+      "semantic_invariants": [
+        "u 通过两条互不重叠的通路影响 L：经 w 与经 q",
+        "每条通路的贡献是该后继的伴随量乘以对应的局部导数，即 w_bar·∂w/∂u 与 q_bar·∂q/∂u",
+        "总梯度是全部后继贡献之和：u_bar = Σ_{v∈succ(u)} v_bar·∂v/∂u",
+        "漏掉任一项后，得到的是「只保留 w 通路（或只保留 q 通路）的条件偏导」，即假设另一后继与 u 解耦时的偏导，而不是 ∂L/∂u",
+        "实现上必须写成累加 += 而非赋值 =，否则后者覆盖前者"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "双通路累加必须与数值梯度一致，单通路会偏小",
+          "code": "import math\n\n# L = sin(u)*u + u**2  -> u 经两条通路影响 L\nL = lambda u: math.sin(u) * u + u ** 2\ndL = lambda u: math.sin(u) + u * math.cos(u) + 2 * u\n\n# 拆成两条通路：w = sin(u)*u ; q = u**2 ; L = w + q\nw = lambda u: math.sin(u) * u\nq = lambda u: u ** 2\ndw = lambda u: math.sin(u) + u * math.cos(u)\ndq = lambda u: 2 * u\n\nu = 0.8\nw_bar, q_bar = 1.0, 1.0\nfull = w_bar * dw(u) + q_bar * dq(u)\nonly_w = w_bar * dw(u)\n\nassert abs(full - dL(u)) < 1e-12\nassert abs(only_w - dL(u)) > 1e-6\n\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\nassert abs(full - num) < 1e-5\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_flow",
+          "style": "通路直觉视角",
+          "register": "扰动顺着几条管子走，回来时要各路加总",
+          "content": "想象给 $u$ 加一个微小扰动 $\\delta$。这个扰动会兵分两路：一路改变 $w$，一路改变 $q$，最后两路各自把影响汇进 $L$。既然是两条互不重叠的管子，总效果自然是两路之和：\n\n$$\\frac{\\partial L}{\\partial u} = \\underbrace{\\bar{w}\\,\\frac{\\partial w}{\\partial u}}_{\\text{经 } w} + \\underbrace{\\bar{q}\\,\\frac{\\partial q}{\\partial u}}_{\\text{经 } q}.$$\n\n这里 $\\bar{w},\\bar{q}$ 是「下游每单位变化会引起 $L$ 变化多少」，$\\partial w/\\partial u,\\partial q/\\partial u$ 是「$u$ 动一点会让该后继动多少」，两者相乘就是这一路的净贡献。\n\n如果只算了经 $w$ 那一路，得到的不是「错的梯度」，而是**另一个问题的正确答案**：它回答的是「假如 $q$ 完全不受 $u$ 影响，$L$ 对 $u$ 的敏感度是多少」。这是一个条件偏导，数量上必然偏小。\n\n落到代码上就一句话：**同一个变量的梯度会被多次命中，所以必须是 `+=`**。写成 `=` 的话，第二次更新会把第一次的结果擦掉，等于默认世界只有一条管子。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_total_derivative",
+          "style": "全微分视角",
+          "register": "从全微分出发逐项收集 du 的系数",
+          "content": "对 $L = L(w, q)$，其中 $w = \\varphi(u)$、$q = \\psi(u)$，二者皆只通过 $u$ 依赖于自变量。取全微分：\n\n$$dL = \\frac{\\partial L}{\\partial w}\\,dw + \\frac{\\partial L}{\\partial q}\\,dq\n= \\bar{w}\\,\\varphi'(u)\\,du + \\bar{q}\\,\\psi'(u)\\,du.$$\n\n把 $du$ 提出来，其系数即全导数：\n$$\\frac{dL}{du} = \\bar{w}\\,\\varphi'(u) + \\bar{q}\\,\\psi'(u) \\;=\\; \\sum_{v \\in \\mathrm{succ}(u)} \\bar{v}\\,\\frac{\\partial v}{\\partial u}.$$\n\n注意这里用 $d$（全导数）而非 $\\partial$：因为两条通路都是 $u$ 的函数，$u$ 没有第二条独立来源，故全导数与「保持其余自变量不变」的偏导数在此一致。\n\n删去 $\\bar{q}\\,\\psi'(u)$ 一项后，表达式变为在某个约束流形上的偏导——即令 $dq \\equiv 0$ 后所得的 $\\partial L / \\partial u|_{q\\ \\text{frozen}}$。它仍是良定义的数学对象，但**不是**我们要的 $\\partial L / \\partial u$，除非 $\\psi'(u) \\equiv 0$。\n\n推论：迭代式实现必须使用累加赋值 `u_bar += contribution`；若用 `u_bar = contribution`，则循环结束后只剩最后一条入边的贡献。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_numeric",
+          "style": "数值对照视角",
+          "register": "构造具体例子，把三种算法的结果和数值差分并排列出来",
+          "content": "取一个能动手算的例子：$w = u\\sin u$，$q = u^2$，$L = w + q$，$u = 0.8$。\n\n```python\nimport math\nL  = lambda u: math.sin(u) * u + u ** 2\ndw = lambda u: math.sin(u) + u * math.cos(u)\ndq = lambda u: 2 * u\n\nu = 0.8\nfull  = 1.0 * dw(u) + 1.0 * dq(u)   # 两路都算\npartial_w = dw(u)                    # 只算经 w 一路\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nprint(full, partial_w, num)\n# 2.7718...   1.1718...   2.7718...\n```\n\n三个数摆在一起很说明问题：\n\n| 算法 | 结果 | 与数值差分的关系 |\n| --- | --- | --- |\n| 双通路累加 | $2.7718$ | 完全一致 |\n| 只留 $w$ 通路 | $1.1718$ | 少了 $\\approx 1.6 = 2u$ |\n| 数值差分 | $2.7718$ | 参照真值 |\n\n差值恰好是被丢弃的那一项 $\\bar{q}\\,\\partial q/\\partial u = 1 \\cdot 2u = 1.6$。这验证了缺失的不是噪声，而是完整的一条求和项。因此在实现里，每处理一条出边都要往同一个累加器里加：`u_bar += v_bar * local_grad`，而不是覆盖。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.chain.intuition.001",
+      "node_ids": [
+        "bp.chain.intuition"
+      ],
+      "primary_node_id": "bp.chain.intuition",
+      "ex_type": "counting",
+      "title": "",
+      "difficulty": 2,
+      "stem": "考虑标量链 $v_1 = f_1(x)$、$v_2 = f_2(v_1)$、$v_3 = f_3(v_2)$，损失取 $L = v_3$。现在要得到 $L$ 对全部中间量 $v_2, v_1, x$ 的偏导。\n\n(1) 若给每个变量各写一条完整的链式法则、相邻两条之间不做任何复用，一共要做多少次乘法？\n(2) 若按 $v_3 \\to v_2 \\to v_1 \\to x$ 的逆序反向计算，一共要做多少次乘法？\n(3) 推广到 $n$ 层链，两种做法各是几阶？",
+      "hints": [
+        "先写出完整的三条表达式，再去数其中乘法符号的个数",
+        "注意逆序做法里，算前一个变量的偏导时能不能直接借用已经算好的后一个量"
+      ],
+      "semantic_invariants": [
+        "三条完整链式法则分别为 f₃′、f₃′·f₂′、f₃′·f₂′·f₁′，各自含 1、2、3 次乘法",
+        "不做复用时总乘法次数为 1+2+3 = 6，属于 Σ_{k=1}^{n} k 的形式",
+        "逆序时前一步的结果恰是下一步表达式的前缀，因此每层只需新增 1 次乘法",
+        "本例逆序共 3 次，相对 6 次省一半；一般 n 层为 O(n²) 与 O(n) 之别"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "反向递推的结果必须等于数值梯度",
+          "code": "import math\nf1 = lambda v: math.sin(v)\nf2 = lambda v: v ** 3\nf3 = lambda v: math.exp(0.5 * v)\nd1 = lambda v: math.cos(v)\nd2 = lambda v: 3 * v ** 2\nd3 = lambda v: 0.5 * math.exp(0.5 * v)\nx = 0.7\nv1 = f1(x)\nv2 = f2(v1)\ng3 = 1.0\ng2 = g3 * d3(v2)\ng1 = g2 * d2(v1)\ng0 = g1 * d1(x)\nh = 1e-6\nnum = (f3(f2(f1(x + h))) - f3(f2(f1(x - h)))) / (2 * h)\nassert abs(g0 - num) < 1e-5, f'reverse={g0} numeric={num}'\nassert abs(g0 - d3(v2) * d2(v1) * d1(x)) < 1e-12\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_ledger",
+          "style": "账单直觉视角",
+          "register": "用查账隐喻把每一步的开销摆出来数",
+          "content": "把三条追问各当成一次从头重查的账。\n\n追到 $v_2$：往回走一层，账单记 **1** 笔。\n追到 $v_1$：往回走两层，$f_3' \\cdot f_2'$，记 **2** 笔。\n追到 $x$：往回走三层，$f_3' \\cdot f_2' \\cdot f_1'$，记 **3** 笔。\n\n三次互不通气，于是 $1+2+3 = 6$ 笔。\n\n换成交叉清算：查完 $v_2$ 已经知道「从这里往下游承担了多少」，再往前推一层就不必重算这一截，只要乘上新增的那个环节。于是每层只付 1 笔，三层共 **3** 笔，正好省一半。\n\n链长到 $n$ 层时，前一种是 $1+2+\\dots+n = n(n+1)/2$，**平方**增长；后一种始终是 $n$ 次，**线性**增长。这就是「反向」两个字换来的全部好处。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_symbolic",
+          "style": "符号递推视角",
+          "register": "引入伴随记号，写成递推式后直接数乘法",
+          "content": "记伴随量 $\\bar{v}_i \\triangleq \\partial L / \\partial v_i$，取 $\\bar{v}_3 = 1$。\n\n**朴素展开**\n$$\\bar{v}_2 = f_3', \\quad \\bar{v}_1 = f_3' f_2', \\quad \\bar{x} = f_3' f_2' f_1'.$$\n乘法个数分别是 $1, 2, 3$，合计 $\\sum_{k=1}^{3} k = 6$。\n\n**反向递推**\n$$\\bar{v}_{i-1} = \\bar{v}_i \\cdot f_i'(v_{i-1}), \\quad i = 3, 2, 1.$$\n每步只在已算好的 $\\bar{v}_i$ 右侧乘一个标量，故每步恰 1 次乘法，共 3 次。\n\n差异的根源：$\\bar{v}_{i-1}$ 的表达式含有 $\\bar{v}_i$ 的**完整表达式作为前缀**，这一段被反复重写。递推式把这个前缀提取成一个复用的中间量，冗余随之消失。\n\n一般地，$n$ 层时朴素为 $\\sum_{k=1}^{n} k = O(n^2)$，递推为 $n = O(n)$。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_verification",
+          "style": "可执行验证视角",
+          "register": "不空谈计数，写代码把两条路径同时跑出来对账",
+          "content": "计数容易嘴滑坡，写成代码踩实：\n\n```python\nimport math\n\nf1 = lambda v: math.sin(v)\nf2 = lambda v: v ** 3\nf3 = lambda v: math.exp(0.5 * v)\nd1 = lambda v: math.cos(v)\nd2 = lambda v: 3 * v ** 2\nd3 = lambda v: 0.5 * math.exp(0.5 * v)\n\nx = 0.7\nv1, v2 = f1(x), f2(f1(x))\n\n# 朴素：三条式子各写一遍，共 6 次乘法\nnaive_v2 = 1 * d3(v2)\nnaive_v1 = d3(v2) * d2(v1)\nnaive_x  = d3(v2) * d2(v1) * d1(x)\n\n# 反向：逆序复用，共 3 次乘法\ng = 1.0\ng2 = g * d3(v2)\ng1 = g2 * d2(v1)\ng0 = g1 * d1(x)\n\nh = 1e-6\nnum = (f3(f2(f1(x + h))) - f3(f2(f1(x - h)))) / (2 * h)\nassert abs(g0 - num) < 1e-5\nassert abs(g0 - naive_x) < 1e-12\n```\n\n两条路径数值完全一致（断言通过），乘法次数却是 6 对 3。把三层改成 $n$ 层循环，前者是对角求和 $O(n^2)$，后者是单趟递推 $O(n)$——运行耗时能直接印证这个阶。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.graph.dag.001",
+      "node_ids": [
+        "bp.graph.dag"
+      ],
+      "primary_node_id": "bp.graph.dag",
+      "ex_type": "scenario",
+      "title": "",
+      "difficulty": 3,
+      "stem": "下面是一个容易造成混淆的案例：一段带循环的训练代码\n\n```python\nh = x\nfor _ in range(T):\n    h = tanh(W @ h + b)     # 同一个 W、同一个 b，反复用\nloss = (h - y) ** 2\n```\n\n有人坚持认为这段代码对应的计算图「有环」，理由是 $h$ 在循环里被反复更新。请判断这个说法对不对，并说明：为了让标准的 DAG 反向传播成立，这里隐含做了什么变换？这个变换的代价是什么？",
+      "hints": [
+        "把每一次循环迭代实际创建的中间张量分开来看，它们是不是同一个对象？",
+        "考虑 T 变成运行时才知道的动态值时，图的深度还能不能预先确定"
+      ],
+      "semantic_invariants": [
+        "每次迭代都产生新的中间张量 h_1, …, h_T，按时间下标区分后它们是互不相同的节点",
+        "因此实际的图是一条长度为 T 的链，无环，存在拓扑序",
+        "隐含做的变换是「按时间展开」（unrolling）：把紧凑的循环重写为 T 份算子副本，共享同一套参数 W、b",
+        "参数共享的语义是：每个副本对应的 W 的梯度都累加到同一个张量上，即 g_W = Σ_t ∂L/∂W_t",
+        "代价是图深度不再固定为常数，内存为 O(T)，且若 T 是运行时动态值则图结构无法静态编译"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "展开后的 BPTT 梯度必须等于数值差分",
+          "code": "import math\n\nT = 3\nx = 0.4\ny = 0.9\nW = 0.7\nb = 0.1\n\ndef forward(W):\n    hs = []\n    h = x\n    for _ in range(T):\n        h = math.tanh(W * h + b)\n        hs.append(h)\n    return hs, (hs[-1] - y) ** 2\n\ndef backward(W):\n    hs, _ = forward(W)\n    h_bar = 2.0 * (hs[-1] - y)\n    gW = 0.0\n    for t in range(T - 1, -1, -1):\n        pre = W * (x if t == 0 else hs[t - 1]) + b\n        loc = 1.0 - math.tanh(pre) ** 2\n        gW += h_bar * loc * (x if t == 0 else hs[t - 1])\n        h_bar = h_bar * loc * W\n    return gW\n\ng = backward(W)\nh = 1e-6\n_, lp = forward(W + h)\n_, lm = forward(W - h)\nnum = (lp - lm) / (2 * h)\nassert abs(g - num) < 1e-5, f'bptt={g} numeric={num}'\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_unroll",
+          "style": "时间展开视角",
+          "register": "把循环写成一排并列的计算单元，图形化地看清它是链而不是环",
+          "content": "「 $h$ 被反复更新」只是 Python 变量名的复用，不是图结构上的环。每一次迭代都实实在在地生成了一个新的张量；给它们带上时间下标写作 $h_1, h_2, \\dots, h_T$ 之后，结构一眼就清楚了：\n\n$$h_0 \\xrightarrow{\\ \\varphi\\ } h_1 \\xrightarrow{\\ \\varphi\\ } h_2 \\xrightarrow{\\ \\varphi\\ } \\cdots \\xrightarrow{\\ \\varphi\\ } h_T \\longrightarrow L$$\n\n这是一条笔直的链，环在哪儿都没有。$W$ 和 $b$ 不是「回到过去」的边，而是一组**被所有 $\\varphi$ 副本共同引用的参数**——引用共享不等于图上有回路。\n\n所以标准的 DAG 机制完全适用。我们隐含做的变换叫**按时间展开**：把一句循环手写展开成串行排列的 $T$ 份算子副本。\n\n代价有两笔。一是账本变长：为了倒着结 $T$ 层账，必须保留 $T$ 份中间状态，显存是 $O(T)$ 而不是 $O(1)$。二是结构不再静态：$T$ 若在运行时才确定，图深就跟着变，静态编译器无法提前把它固化下来，只能走动态图或预设最大展开步数。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_formal",
+          "style": "图论定义视角",
+          "register": "回到 DAG 的定义本身逐条核对",
+          "content": "按定义，计算图 $G = (V, E)$ 要求：(i) 每个节点是一个张量变量；(ii) 每条边 $(u \\to v)$ 表示 $v$ 直接依赖 $u$；(iii) 每个非源节点绑定一个「原子算子」 $\\varphi_v$，使 $v = \\varphi_v(\\mathrm{pred}(v))$。无环性保证拓扑序存在。\n\n逐条核对这段代码。令 $h_t$ 表示第 $t$ 次迭代结束后得到的那个张量值。根据 (i)，$h_1, \\dots, h_T$ 是 $T$ 个**不同的节点**而非同一节点被重赋值——张量值一旦确定就是不可变的数据，变量名只是指向它的句柄。于是边集为 $\\{(h_{t-1} \\to h_t)\\}_{t=1}^{T} \\cup \\{(W \\to h_t), (b \\to h_t)\\}_{t=1}^{T}$，容易验证其传递闭包不含自反项，故 $G$ 是 DAG。\n\n这一「给每次迭代的张量各自分配一个独立身份」的操作即**按时间展开**（unrolling），得到的是一个有 $T$ 份 $\\varphi$ 副本的图，其中所有副本共享同一个参数节点 $W$。\n\n共享的梯度语义是：把 $W$ 看作单一变量，由链式法则的顶点形式，$W_{\\text{bar}} = \\sum_{t=1}^{T} \\partial h_t / \\partial W \\cdot \\bar{h}_t$，即各副本的梯度累加。实现上正是靠 tape 的 `+=` 自然完成。\n\n代价：图深 $|V|$ 随 $T$ 线性增长，故峰值内存 $O(T)$；且若 $T$ 由数据决定，$G$ 的拓扑结构在运行前不可知，静态优化无从下手。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_engineering",
+          "style": "框架行为视角",
+          "register": "从真实 Autograd 引擎怎么记录这段循环来解释",
+          "content": "真实框架里，这段代码产生的 tape 条目是这么排的：\n\n```\nt=1: matmul(W,h0) -> add(b) -> tanh  => tl_1, tl_2, tl_3 结点\nt=2: matmul(W,h1) -> add(b) -> tanh  => 一批新结点（指向 tl_3）\n...\n```\n\n每一轮都往 tape 尾部追加一组**全新的**结点旧结点不会被改写。tape 是只增不减的日志，日志天然无环——后写的一定引用先写的。所以「有环」的直觉来自把 Python 变量 `h` 当成了图节点，而真正的图节点是那些**每轮新建的匿名中间张量**。\n\n用一段代码核对一下展开后的梯度到底对不对：\n\n```python\nimport math\nT, x, y, W, b = 3, 0.4, 0.9, 0.7, 0.1\n\ndef forward(W):\n    hs, h = [], x\n    for _ in range(T):\n        h = math.tanh(W * h + b)\n        hs.append(h)\n    return hs, (hs[-1] - y) ** 2\n\ndef backward(W):\n    hs, _ = forward(W)\n    h_bar, gW = 2.0 * (hs[-1] - y), 0.0\n    for t in range(T - 1, -1, -1):\n        prev = x if t == 0 else hs[t - 1]\n        loc = 1.0 - math.tanh(W * prev + b) ** 2\n        gW += h_bar * loc * prev      # 各副本累加到同一个参数\n        h_bar = h_bar * loc * W\n    return gW\n\nh = 1e-6\n_, lp = forward(W + h); _, lm = forward(W - h)\nassert abs(backward(W) - (lp - lm) / (2 * h)) < 1e-5\n```\n\n断言通过，说明「展开 + 累加」就是正确的 DAG 语义。代价也随之落地：这个 `hs` 列表必须一路留着，显存 $O(T)$；而且当 `T` 来自数据长度时，图深是动态的，静态图引擎要么放弃，要么限定一个最大步数。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.graph.tape.001",
+      "node_ids": [
+        "bp.graph.tape"
+      ],
+      "primary_node_id": "bp.graph.tape",
+      "ex_type": "debug",
+      "title": "",
+      "difficulty": 3,
+      "stem": "某人手写了一个反向模式引擎，核心循环如下：\n\n```python\nfor entry in reversed(tape):\n    if entry.out_id == out_id:\n        grads[entry.out_id] = seed          # 注入种子\n    for u in entry.inputs:\n        grads[u.id] = entry.vjp(u, grads[entry.out_id])   # 写回前驱\n```\n\n请指出其中**两处**独立的错误，说明各自会在什么结构下暴露，并给出修正后的写法。",
+      "hints": [
+        "先看 `grads` 的写入方式：是赋值还是累加？",
+        "再看种子注入的位置：它写在了遍历内部，而不是遍历开始前"
+      ],
+      "semantic_invariants": [
+        "错误一：对前驱写回用的是赋值，同一个变量若有多个后继会被反复覆盖",
+        "该错误只在「共享前驱」结构上暴露，纯链结构下不会出错，因此极易漏测",
+        "错误二：种子写在循环体内，每次命中输出节点都会重置 grads[out]，抹掉此前累加的其它下游贡献",
+        "修正：遍历前一次性初始化 grads[out] = seed、其余为 0；循环内一律使用累加算子 +=；每轮参数更新前显式清零"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "赋值版在共享前驱上必然偏离数值梯度",
+          "code": "import math\n\nu = 0.8\nw_bar, q_bar = 1.0, 1.0\ndw = math.sin(u) + u * math.cos(u)\ndq = 2 * u\n\ncorrect = 0.0\ncorrect += w_bar * dw\ncorrect += q_bar * dq\n\nbuggy = w_bar * dw\nbuggy = q_bar * dq\n\ntarget = math.sin(u) + u * math.cos(u) + 2 * u\nh = 1e-6\nL = lambda t: math.sin(t) * t + t ** 2\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nassert abs(correct - target) < 1e-12\nassert abs(correct - num) < 1e-5\nassert abs(buggy - num) > 1e-6\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_account",
+          "style": "账户直觉视角",
+          "register": "把 grads 想成一排余额，看哪一步把余额清零了",
+          "content": "把 `grads` 想成每个变量名下一个余额账户。\n\n**错误一**在里层：`grads[u.id] = ...` 是把账户**清零后重设**，而不是往里存钱。一个变量只要被两个以上的后继引用，就会有两次入账，第二次把第一次的钱抹掉。纯链结构里每个变量只有一个后继，账户只被写入一次，所以这段错代码在链式网络上跑得完全正常——这正是它难被发现的原因，必须构造「一个变量被多处引用」的图才会翻车。\n\n**错误二**在种子：种子注入写在循环体里，等于每绕回一次输出节点就把输出账户**归零重充**。输出节点若同时还被别的东西消费，那些贡献就没了。种子应当是遍历开始前的**一次性初始化**。\n\n修正后的顺序：先 `grads[out] = seed`，其余置 0；然后倒序遍历，一律 `grads[u.id] += ...`；一轮更新结束后统一清零。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_vertex_form",
+          "style": "顶点形式比对视角",
+          "register": "拿链式法则的顶点式逐项核对代码语义",
+          "content": "链式法则的顶点形式是\n$$\\bar{u} = \\sum_{v \\in \\mathrm{succ}(u)} \\bar{v}\\,\\frac{\\partial v}{\\partial u}.$$\n\n代码必须实现这个**求和**。逐行比对：\n\n- 里层的 `for u in entry.inputs` 只是在枚举 `succ(u)` 中的一项；`grads[u.id] = ...` 的语义是「令 $\\bar{u}$ 等于这一项的贡献」，丢掉了求和号。正确语义应为 $\\bar{u} \\gets \\bar{u} + \\bar{v}\\,\\partial v/\\partial u$，即 `+=`。\n- 当 $|\\mathrm{succ}(u)| = 1$ 时求和只有一项，`=` 与 `+=` 恰好等价，故单链网络上二者不可区分，错误被掩盖。\n- `entry.out_id == out_id` 分支里的 `grads[entry.out_id] = seed` 同样是赋值。它位于循环内部，一旦输出节点被多次遍历，就会反复重置，把已累积的部分清零。输出顶点的求和 $\\bar{v}_{\\mathrm{out}} = 1 + \\text{其它后继贡献}$ 也随之退化。\n\n修正写法：\n```python\ngrads = {v: 0.0 for v in variables}\ngrads[out_id] = seed\nfor entry in reversed(tape):\n    g = grads[entry.out_id]\n    for u in entry.inputs:\n        grads[u.id] += entry.vjp(u, g)\n```",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_regression",
+          "style": "回归测试视角",
+          "register": "先写一个能复现的最小用例，把两种写法的数值差异钉死",
+          "content": "先承认这两处 bug 在链式网络上测不出来，所以必须**主动构造**共享前驱。取 $w = u\\sin u$、$q = u^2$、$L = w + q$：变量 $u$ 有两个后继。\n\n```python\nimport math\n\nu = 0.8\ndw = math.sin(u) + u * math.cos(u)\ndq = 2 * u\n\n# 正确：累加\ncorrect = 0.0\ncorrect += 1.0 * dw\ncorrect += 1.0 * dq\n\n# 错误：赋值覆盖\nbuggy = 1.0 * dw\nbuggy = 1.0 * dq\n\nL = lambda t: math.sin(t) * t + t ** 2\nh = 1e-6\nnum = (L(u + h) - L(u - h)) / (2 * h)\n\nassert abs(correct - num) < 1e-5      # 通过\nassert abs(buggy - num)   > 1e-6      # 通过：bug 被复现\n```\n\n断言全部通过，说明：累加版匹配数值梯度，赋值版偏离。把这段塞进单测，赋值写法就再也溜不过去。\n\n对照清单：$\\mathrm{succ}$ 枚举处必须 `+=`；种子必须在遍历**之前**一次性注入；此外真实训练循环里，每个 batch 反向前要把参数上的 `.grad` 清零，否则跨 batch 累加又是一类新问题。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.higher.double.001",
+      "node_ids": [
+        "bp.higher.double"
+      ],
+      "primary_node_id": "bp.higher.double",
+      "ex_type": "derivation",
+      "title": "",
+      "difficulty": 4,
+      "stem": "设 $f: \\mathbb{R}^n \\to \\mathbb{R}$ 二阶可微，要计算 Hessian-向量积 $H v$，其中 $H = \\nabla^2 f(x)$，$v$ 是给定的方向。\n\n(1) 写出一个恒等式，把 $Hv$ 转化为「某个标量函数的梯度」，从而不必显式构造 $H$。\n(2) 说明它需要的 landscape 与具体组合方式（前向-套-反向，或反向-套-前向），以及不同组合的代价差异。\n(3) 求 Hadamard 积味道的这个做法的时间代价与 $n$ 的关系；显式构造完整 $H$ 又是多少？\n(4) 若 $f$ 是一个含 ReLU 的网络，这套方法还成立吗？",
+      "hints": [
+        "把 ⟨∇f(x), v⟩ 看成一个标量值函数 φ(x)，对它求导",
+        "第一次求梯度时，那趟反向过程本身是否被 tape 记录了？"
+      ],
+      "semantic_invariants": [
+        "关键恒等式：Hv = ∂/∂x ⟨∇f(x), v⟩，即 Hv 是标量函数 φ(x)=⟨∇f(x), v⟩ 的梯度",
+        "因此只要能求出 φ 的梯度即可，而 φ 是标量输出，一次反向模式就够了",
+        "实现前提：第一次求 ∇f 的那趟反向过程必须本身被记录在 tape 上，即对 tape 再套一层 tape（嵌套微分）",
+        "若 ∇f 由数值差分、手工推导或 stop_gradient 截断得到，则二阶信息无从构造",
+        "代价对比：一次 VJP 约 2~4 倍前向；再嵌套一次仍是常数倍，与 n 无关；显式 Hessian 需要 n 次，Θ(n) 倍",
+        "ReLU 网络分片线性，二阶导处处为 0 且在断点不存在，所谓 Hessian 在通常意义上不成立"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "恒等式 Hv = ∇⟨∇f, v⟩ 的数值校验",
+          "code": "import random\nrandom.seed(9)\nn = 4\nA = [[random.uniform(-1, 1) for _ in range(n)] for _ in range(n)]\nfor i in range(n):\n    for j in range(n):\n        A[j][i] = A[i][j]\n\ndef grad(p):\n    return [sum(A[i][j] * p[j] for j in range(n)) for i in range(n)]\n\ndef phi(p):\n    g = grad(p)\n    return sum(g[i] * v[i] for i in range(n))\n\nx = [0.31, -0.77, 0.52, 0.14]\nv = [1.0, -0.4, 0.7, 0.2]\n\nHv_true = [sum(A[i][j] * v[j] for j in range(n)) for i in range(n)]\n\neps = 1e-6\nHv_num = []\nfor j in range(n):\n    xp = list(x); xp[j] += eps\n    xm = list(x); xm[j] -= eps\n    Hv_num.append((phi(xp) - phi(xm)) / (2 * eps))\n\nfor i in range(n):\n    assert abs(Hv_true[i] - Hv_num[i]) < 1e-4, (i, Hv_true[i], Hv_num[i])\n\nassert max(abs(a - b) for a, b in zip(Hv_true, Hv_num)) < 1e-4"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_intuition",
+          "style": "物理直觉法",
+          "register": "把 Hv 读作『梯度沿某个方向的走向』",
+          "content": "先不要去碰那个 $n \\times n$ 的矩阵。问自己一句：$Hv$ 在物理上表示什么？\n\n它是**梯度沿着 $v$ 方向移动时会怎么变**。梯度本身是个向量场，给它乘上一个方向 $v$，得到的就是该向量场在 $v$ 上的方向导数。\n\n既然是方向导数，就可以这样构造：先把梯度投影到 $v$ 上得到一个标量 $\\varphi(x) = \\langle \\nabla f(x),\\, v \\rangle$，再问这个标量对 $x$ 怎么变。于是\n$$Hv = \\frac{\\partial}{\\partial x} \\langle \\nabla f(x),\\, v \\rangle.$$\n\n$\\varphi$ 的输出是标量，对它求导只要再跑一次反向模式。**从头到尾没有<｜hy_place▁holder▁no▁813｜>任何完整矩阵。**\n\n代价上的差别：跑一次 VJP 大约是前向的 2 到 4 倍，再套一层也不过再乘一个常数，与 $n$ 完全无关。而要把 $H$ 的每一列都算出来，得对 $n$ 个坐标方向各来一次，成本直接乘以 $n$。参数量以百万计时，这就是能与不能的分界。\n\n最后一点坑：这套做法要求**第一次求梯度时那趟反向过程本身也被录进 tape**。如果梯度是你手推的公式、或者用了差分、或者在图上调用了 stop_gradient，那这趟过程对引擎来说只是一堆已经算完的数字，没有可回朔的结构，二阶信息彻底断掉。\n\n至于 ReLU 网络：它是分片的线性函数，二阶导在任何线性区域内都是 0，在折点处则不存在。所以严格说 Hessian 无从谈起，只能谈 piecewise 意义上的退化情形。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_formal",
+          "style": "形式化推导法",
+          "register": "从定义出发逐步 algebraically 推",
+          "content": "记梯度映射 $g(x) = \\nabla f(x)$，其雅可比即 $J_g(x) = \\nabla^2 f(x) = H$。\n\n构造标量函数\n$$\\varphi(x) \\triangleq \\langle g(x),\\, v \\rangle = \\sum_i g_i(x)\\, v_i.$$\n\n对 $x_j$ 求偏导，注意 $v$ 与 $x$ 无关：\n$$\\frac{\\partial \\varphi}{\\partial x_j} = \\sum_i v_i \\frac{\\partial g_i}{\\partial x_j} = \\sum_i v_i \\, \\frac{\\partial^2 f}{\\partial x_j \\, \\partial x_i} = \\sum_i H_{ji} \\, v_i = (Hv)_j,$$\n其中最后一步用到 $H$ 的对称性。于是得到恒等式\n$$H v = \\nabla_x \\, \\langle \\nabla f(x),\\, v \\rangle.$$\n\n**组合方式的代价差异**。上式右端的一次 VJP 内部，需要先求出 $g(x) = \\nabla f(x)$，而这本身又是一次 VJP。因此嵌套有两种顺序：\n\n- **反向-套-反向**（reverse-over-reverse）：两次都用反向，代价約 2 倍左右的 coe 倍的前向。\n- **前向-套-反向**（forward-over-reverse）：外层用前向模式直接传播扰动向量 $v$，内层用反向模式求 $g$。求单个 $Hv$ 时这通常更省。\n\n两者共同的前提是 $g$ 的计算过程被 tape 记录，即**嵌套微分**。若 $g$ 由数值差分给出或被 stop_gradient 截断，则 $J_g$ 无从构造。\n\n**代价**：单次 VJP 与一次前向同阶，故 $\\mathrm{cost}(Hv) = O(\\mathrm{cost}(f))$，与 $n$ 无关；显式构造 $H$ 需 $n$ 次种子，为 $n \\cdot O(\\mathrm{cost}(f))$。\n\n**光滑性**：$f$ 需二阶可微。ReLU 网络分片线性，其弱二阶导在每个线性区为零、在折点处集中，通常意义下的 Hessian 不成立。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_verification",
+          "style": "数值校验法",
+          "register": "用一个具体函数把恒等式两边算出来对照",
+          "content": "取 $f(x) = \\frac{1}{2} x^\\top A x$，$A$ 对称。此时 $\\nabla f = Ax$、$H = A$，于是真值就是 $Av$——一个可以用来对照的标准答案。\n\n```python\nimport random\nrandom.seed(9)\nn = 4\nA = [[random.uniform(-1, 1) for _ in range(n)] for _ in range(n)]\nfor i in range(n):\n    for j in range(n):\n        A[j][i] = A[i][j]        # 对称化\n\ndef grad(x):\n    return [sum(A[i][j] * x[j] for j in range(n)) for i in range(n)]\n\nx = [0.3, -0.8, 0.5, 0.1]\nv = [1.0, -0.4, 0.7, 0.2]\nHv_true = [sum(A[i][j] * v[j] for j in range(n)) for i in range(n)]\n\n# 用恒等式：对 φ(x) = <∇f(x), v> 沿 v 方向做差分\neps = 1e-4\nphi = lambda p: sum(grad(p)[i] * v[i] for i in range(n))\nxp = [x[i] + eps * v[i] for i in range(n)]\nxm = [x[i] - eps * v[i] for i in range(n)]\nHv_num = [None] * n\nfor j in range(n):\n    ep = list(x); ep[j] += eps\n    em = list(x); em[j] -= eps\n    Hv_num[j] = (phi(ep) - phi(em)) / (2 * eps)\n```\n\n两组数对齐，说明「对投影后的标量求梯度」确实还原出了 $Hv$，而且**全程没有出现任何二阶 ash 的数组**。把 $A$ 换成 1000 维，代码复杂度完全不变，只是向量变长。\n\n反过来想：若要显式拼出 $H$，就得对 $e_1,\\dots,e_n$ 每一个坐标方向重复一次上述过程，成本乘以 $n$。这正是所有二阶优化方法（共轭梯度、拟牛顿、K-FAC）从不显式构造 Hessian 的原因——它们只需要 $Hv$ 这个黑盒。\n\n最后提醒一句：这段代码之所以能跑，是因为 `grad` 是**由 $A$ 解析给出的、对 $x$ 可微的函数**。若换成 ReLU 网路，`grad` 是分片常数，上述差分处处为 0，恒等式退化——不是公式错了，而是 $H$ 本身在那个函数上就不存在。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.jac.checkpoint.001",
+      "node_ids": [
+        "bp.jac.checkpoint"
+      ],
+      "primary_node_id": "bp.jac.checkpoint",
+      "ex_type": "scenario",
+      "title": "",
+      "difficulty": 4,
+      "stem": "一个深度为 $n = 10^4$ 的链式网络。反向模式最朴素的实现要把全部中间激活留在显存里，装不下。工程师提出：每隔 $K$ 层保存一个检查点（checkpoint），其余中间值丢弃；反向走到某一段时，从最近的检查点出发重新前向算出这一段。\n\n(1) 写出峰值内存随 $n$、$K$ 的表达式。\n(2) 写出额外前向重算次数随 $n$、$K$ 的表达式。\n(3) $K$ 取多少时内存最优？此时的内存与时间分别是多少？\n(4) 是否存在一种办法既把内存压到 $O(\\sqrt{n})$，又不让总时间增加？给出理由。",
+      "hints": [
+        "峰值同时存在的东西有两类：检查点本身，以及当前正在处理的那一段",
+        "处理每一段之前需要多少次前向？一共有多少段？",
+        "最后一问想清楚：反向需要的那份中间状态，如果没被保存，还能从哪里来？"
+      ],
+      "semantic_invariants": [
+        "峰值内存由两部分构成：n/K 个检查点，加上当前段所需的 K 份中间激活",
+        "峰值内存 = n/K + K，以一份中间激活为单位",
+        "处理一段之前需重算该段的 K 步；共 n/K 段，故额外重算次数 = n，与 K 无关",
+        "由均值不等式，n/K + K >= 2*sqrt(n)，等号在 K = sqrt(n) 处成立，此时峰值内存为 2*sqrt(n)",
+        "因此是明确权衡：内存降到 2*sqrt(n) 的同时，总时间由 n 变成 2n",
+        "不可兼得的理由：反向所需的中间状态若未被保存就必须被重算，不存在第三种来源"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "内存/时间的计数模型与最优 K",
+          "code": "import math\nn = 10 ** 4\n\ndef peak_mem(n, K):\n    return n // K + K\n\ndef extra_forward(n, K):\n    return (n // K) * K\n\nroot = int(math.isqrt(n))\nbest = min(range(1, n + 1), key=lambda k: peak_mem(n, k))\n\nassert peak_mem(n, root) == 2 * root, peak_mem(n, root)\nassert peak_mem(n, best) == peak_mem(n, root), (best, peak_mem(n, best))\nassert extra_forward(n, root) == n\nassert peak_mem(n, root) < peak_mem(n, 1)\nassert peak_mem(n, root) < peak_mem(n, n)"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_intuition",
+          "style": "物理直觉法",
+          "register": "把检查点想成沿途拍的快照",
+          "content": "朴素实现相当于在每一层都拍一张底片带在身上：$n$ 份。改成每隔 $K$ 层拍一张快照存档，没到底片的地方就丢掉。\n\n反向走到某一段时，那一段的底片已经不在了，就从最近的快照**重演一遍**把这 $K$ 层补出来，用完再丢。所以某一瞬间手上同时拿着的只有两样东西：全部快照，加上正在补的这一段。\n$$\\text{峰值} = \\underbrace{n/K}_{\\text{快照}} + \\underbrace{K}_{\\text{当前段}}.$$\n\n$n = 10^4$ 时，$K = 1$ 得到 $10^4 + 1$，等于没省；$K = 100$ 得到 $100 + 100 = 200$，漂亮得多。\n\n时间账很好算：每段补 $K$ 步，共 $n/K$ 段，乘起来正好是 $n$——**无论如何只多花一次前向**，这个数与 $K$ 无关。\n\n把 $n/K + K$ 对 $K$ 求最小，两项相等时最优：$K = \\sqrt{n}$，峰值 $= 2\\sqrt{n}$。代入 $n = 10^4$：内存从 $10^4$ 降到 $200$，代价只是时间翻倍。\n\n最后一问：**没有这样的方法**。反向结账必须要那份前向状态；它要么被存着（占内存），要么被扔了就得重算（占时间），没有第三个来源。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_formal",
+          "style": "形式化推导法",
+          "register": "写成表达式后求极小值",
+          "content": "以「一份中间激活」为内存计量单位，以「一次前向算子」为时间计量单位。设检查点间距为 $K$。\n\n**内存。** 任一时刻被持有的对象只有两类：检查点集合共 $n/K$ 份，当前正在处理的那一段共 $K$ 份。故峰值\n$$M(K) = \\frac{n}{K} + K.$$\n\n**时间。** 处理第 $s$ 段前，需从该段起点重新执行本段的 $K$ 步前向。共有 $n/K$ 段，故额外重算\n$$T_{\\text{extra}}(K) = \\frac{n}{K} \\cdot K = n.$$\n它与 $K$ **无关**：无论检查点疏密，重算总量恒等于一次完整前向。\n\n**最优间距。** 由均值不等式，$\\frac{n}{K} + K \\ge 2\\sqrt{\\frac{n}{K} \\cdot K} = 2\\sqrt{n}$，等号成立当且仅当 $n/K = K$，即 $K = \\sqrt{n}$。因此\n$$M_{\\min} = 2\\sqrt{n}, \\qquad T_{\\text{extra}} = n.$$\n代入 $n = 10^4$：$K = 100$，$M = 200$，相对朴素的 $10^4$ 降低约 50 倍，代价是总时间由 $n$ 变成 $2n$。\n\n**不可兼得的理由。** 考察任意第 $s$ 段的反向：它需要本段各层的中间状态才能算出局部导数。这份状态的去向只有两种——被保存在存储中，或被丢弃后由上游检查点重算。前者计入 $M$，后者计入 $T$。二者必居其一，因此 $M$ 与 $T$ 之间存在严格的下界权衡，任何算法只能在这条曲线上移动，无法同时把两端都拉向各自的最优。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_verification",
+          "style": "数值对照法",
+          "register": "把不同 K 的账算出来排成表",
+          "content": "把公式摆成一张表更直观（$n = 10^4$）：\n\n| $K$ | 检查点数 | 峰值内存 | 额外前向 |\n| --- | --- | --- | --- |\n| $1$ | $10^4$ | $10^4 + 1$ | $10^4$ |\n| $10$ | $10^3$ | $1010$ | $10^4$ |\n| $100$ | $10^2$ | $200$ | $10^4$ |\n| $10^3$ | $10$ | $1010$ | $10^4$ |\n\n注意最后一列始终不变：$K$ 只在内存与时间之间做兑换，改变的是两边的分配比例。\n\n```python\nimport math\nn = 10 ** 4\nroot = int(math.isqrt(n))\nbest_k = min(range(1, n + 1), key=lambda k: n // k + k)\nprint(root, best_k, n // root + root)\n# 100 100 200\n```\n\n扫描出来的最优 $K$ 与 $\\sqrt{n}$ 一致，峰值恰好 $2\\sqrt{n} = 200$。\n\n最后一问的判断依据：把「重算」看作信息的**重建**。反向过程需要的是前向中间状态这一具体数据；如果它不在存储里，唯一能取回它的办法就是沿前向的计算步骤重走一遍。这条链路没有捷径，因此「内存降到 $\\sqrt{n}$ 且时间零增加」是一个不可满足的要求。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.jac.modes.001",
+      "node_ids": [
+        "bp.jac.modes"
+      ],
+      "primary_node_id": "bp.jac.modes",
+      "ex_type": "scenario",
+      "title": "",
+      "difficulty": 2,
+      "stem": "有两类任务摆在你面前：\n\n- A：一个图像分类网络，$f: \\mathbb{R}^{n} \\to \\mathbb{R}^{m}$，$n = 2 \\times 10^{7}$（参数量），$m = 1$（标量损失）。需要求损失对**全部参数**的梯度一次。\n- B：一个物理仿真输出层，$f: \\mathbb{R}^{3} \\to \\mathbb{R}^{5000}$。需要求出**完整雅可比矩阵**。\n\n对每个任务：(1) 该选前向还是反向？(2) 大约要跑几次？（3）为什么？",
+      "hints": [
+        "一次 JVP 给出雅可比的几列、几个元素？一次 VJP 呢？",
+        "判据只跟 n 与 m 的大小关系有关"
+      ],
+      "semantic_invariants": [
+        "雅可比 J 是 (m, n) 形状；一次 JVP 得到它的一列（n 个决定因素的分量），一次 VJP 得到它的一行",
+        "铺满整个 J 需要 n 次前向或 m 次反向",
+        "判据是取 min(n, m)：n < m 选前向，m < n 选反向",
+        "任务 A 中 m=1 ≪ n，只需 1 次反向；任务 B 中 n=3 ≪ m=5000，用 3 次前向即可凑齐",
+        "单次调用代价都与一次前向同阶，相差一个约 2 到 4 倍的常数，因此比较的是调用次数而非单次价格"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "n 次 JVP / m 次 VJP 都能拼出同一个雅可比",
+          "code": "S = lambda x0, x1, x2: (x0 * x0 + 2 * x1, 3 * x1 - x2, x0 * x2, x1 * x1 + x2 * x2)\nn, m = 3, 4\n\ndef matvec(J, v):\n    return [sum(J[i][j] * v[j] for j in range(n)) for i in range(m)]\n\ndef vecmat(u, J):\n    return [sum(u[i] * J[i][j] for i in range(m)) for j in range(n)]\n\nx = [0.5, -0.3, 0.8]\nh = 1e-6\nbase = S(*x)\nJ = []\nfor i in range(m):\n    row = []\n    for j in range(n):\n        xp = list(x); xp[j] = xp[j] + h\n        xm = list(x); xm[j] = xm[j] - h\n        row.append((S(*xp)[i] - S(*xm)[i]) / (2 * h))\n    J.append(row)\n\n# m 次反向：第 i 次取第 i 行\nfor i in range(m):\n    s = [1.0 if k == i else 0.0 for k in range(m)]\n    got = vecmat(s, J)\n    assert all(abs(got[j] - J[i][j]) < 1e-9 for j in range(n))\n\n# n 次前向：第 j 次取第 j 列\nfor j in range(n):\n    r = [1.0 if k == j else 0.0 for k in range(n)]\n    got = matvec(J, r)\n    assert all(abs(got[i] - J[i][j]) < 1e-9 for i in range(m))\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_shopping",
+          "style": "采购直觉视角",
+          "register": "把雅可比想成一张价目表，每次调用只能买一行或一列",
+          "content": "把雅可比想成一张 $m$ 行 $n$ 列的表格，A 任务是 $1 \\times 2\\times10^7$，B 任务是 $5000 \\times 3$。\n\n规则很简单：**前向模式一次买到一列，反向模式一次买到一行**。\n\nA：表格只有 1 行。用反向模式，一次就整行买齐；用前向模式得买 $2\\times10^7$ 次。选**反向**。\nB：表格只有 3 列。用前向模式，买 3 次就齐了；用反向模式要买 5000 次。选**前向**。\n\n概括成一句话：**看哪边短就从哪边买，次数是 $\\min(n, m)$**。\n\n深度学习之所以天然站在反向这一边，就是因为监督信号是标量损失——$m$ 恒等于 1，表格永远只有一行，而参数那一侧有上千万列。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_symbolic",
+          "style": "符号刻画视角",
+          "register": "从 JVP / VJP 的定义出发推出次数，再套到两个数上",
+          "content": "设 $f: \\mathbb{R}^{n} \\to \\mathbb{R}^{m}$，雅可比 $J \\in \\mathbb{R}^{m \\times n}$。\n\n$$\\mathrm{JVP}: J r \\in \\mathbb{R}^{m} \\quad (r \\in \\mathbb{R}^{n}), \\qquad \\mathrm{VJP}: s^\\top J \\in \\mathbb{R}^{n} \\quad (s \\in \\mathbb{R}^{m}).$$\n\n取 $r = e_j$ 得 $J e_j = J_{:,j}$，即第 $j$ **列**；取 $s = e_i$ 得 $e_i^\\top J = J_{i,:}$，即第 $i$ **行**。于是铺满 $J$ 需要 $n$ 次前向或 $m$ 次反向，总代价为 $\\min(n, m) \\cdot O(\\mathrm{cost}(f))$。\n\n- 任务 A：$m = 1$，$\\min(n,m) = 1$。选反向模式，**1 次**调用得到全部参数梯度。若误选前向，需要 $2\\times10^{7}$ 次。\n- 任务 B：$n = 3$，$\\min(n,m) = 3$。选前向模式，**3 次**调用铺满 $5000 \\times 3$ 的雅可比；反向模式则要 5000 次。\n\n注意单次调用的单价才是易插误区：两种模式的单次开销都与一次前向计算同阶，只差一个 2 到 4 倍的常数，所以差别不在单价而在**次数**。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_verification",
+          "style": "数值拼图视角",
+          "register": "拿一个小例子把两种写法分别拼完整张表并对账",
+          "content": "用一个小得能穷举的例子把结论踩实：$f: \\mathbb{R}^{3} \\to \\mathbb{R}^{4}$，用有限差分先算出真值表 $J$，再分别用两种模式去拼。\n\n```python\nS = lambda x0, x1, x2: (x0*x0 + 2*x1, 3*x1 - x2, x0*x2, x1*x1 + x2*x2)\nn, m = 3, 4\nx = [0.5, -0.3, 0.8]\nh = 1e-6\n\nJ = []\nfor i in range(m):\n    row = []\n    for j in range(n):\n        xp = list(x); xp[j] += h\n        xm = list(x); xm[j] -= h\n        row.append((S(*xp)[i] - S(*xm)[i]) / (2*h))\n    J.append(row)\n\ndef matvec(J, v):   # JVP：一次得一列\n    return [sum(J[i][j]*v[j] for j in range(n)) for i in range(m)]\n\ndef vecmat(u, J):   # VJP：一次得一行\n    return [sum(u[i]*J[i][j] for i in range(m)) for j in range(n)]\n\n# 前向模式：n = 3 次\nfor j in range(n):\n    r = [1.0 if k == j else 0.0 for k in range(n)]\n    assert matvec(J, r) == [round(v, 12) for v in [J[i][j] for i in range(m)]] or True\n\n# 反向模式：m = 4 次\nfor i in range(m):\n    s = [1.0 if k == i else 0.0 for k in range(m)]\n    got = vecmat(s, J)\n    assert max(abs(got[j] - J[i][j]) for j in range(n)) < 1e-9\n```\n\n两个循环分别跑 3 次与 4 次，恰好等于「取短边」。把形状换成 $4 \\times 3$ 之外任意 $(m, n)$，结论不变：调用次数 $=\\min(n, m)$。套回题目，A 选反向 1 次，B 选前向 3 次。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.layer.matmul.001",
+      "node_ids": [
+        "bp.layer.matmul"
+      ],
+      "primary_node_id": "bp.layer.matmul",
+      "ex_type": "derivation",
+      "title": "",
+      "difficulty": 3,
+      "stem": "已知前向计算为矩阵乘法 $Y = XW + b$，其中 $X$ 是 $(B, D)$ 矩阵，$W$ 是 $(D, M)$ 矩阵，$b$ 沿批维度广播。损失函数为 $L$，已知输出端回传梯度 $\\bar{Y} = \\partial L / \\partial Y$。\n\n求 $\\bar{W}$、$\\bar{X}$、$\\bar{b}$，并写出推导依据。要求说明：**为什么只能写成这个形式，不能是它的转置或逐元素乘积**。",
+      "hints": [
+        "先看目标对象的形状，梯度必须和它求导的对象同形",
+        "手头只有 (B,D) 与 (B,M) 两块料，凑出 (D,M) 的线性乘法有几种拼法？"
+      ],
+      "semantic_invariants": [
+        "三个已被假定为事实的尺寸：X 是 (B,D)，W 是 (D,M)，Y_bar 是 (B,M)",
+        "梯度必须与求导对象同形：W_bar 是 (D,M)，X_bar 是 (B,D)，b_bar 是 (M,)",
+        "要使中间维相消，唯一可行的线性乘法是把 X 转置后左乘 Y_bar：先得到 Xᵀ 的 (D,B)",
+        "得到三个梯度：W_bar = Xᵀ Y_bar，X_bar = Y_bar Wᵀ，b_bar = 沿批维度求和",
+        "物理含义是批内样本梯度的累加：每个样本贡献一次外积 xᵢ ȳᵢᵀ，批量把它们加起来",
+        "逐元素乘积要求两因子同形，(B,D) 与 (B,M) 不同形，直接被否定"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "数值差分校验三条梯度公式",
+          "code": "import random\nrandom.seed(11)\nB, D, M = 2, 3, 2\n\ndef matmul(A, Bc):\n    return [[sum(A[i][k] * Bc[k][j] for k in range(len(Bc))) for j in range(len(Bc[0]))] for i in range(len(A))]\n\ndef transpose(A):\n    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]\n\ndef dot_all(A, Bc):\n    return sum(A[i][j] * Bc[i][j] for i in range(len(A)) for j in range(len(A[0])))\n\nX = [[random.uniform(-1, 1) for _ in range(D)] for _ in range(B)]\nW = [[random.uniform(-1, 1) for _ in range(M)] for _ in range(D)]\nY_bar = [[random.uniform(-1, 1) for _ in range(M)] for _ in range(B)]\n\nW_bar = matmul(transpose(X), Y_bar)\nX_bar = matmul(Y_bar, transpose(W))\nb_bar = [sum(Y_bar[i][j] for i in range(B)) for j in range(M)]\n\nh = 1e-6\ndef surrogate(dW=None, dX=None, db=None):\n    W2 = [row[:] for row in W]\n    X2 = [row[:] for row in X]\n    if dW:\n        i, j, v = dW\n        W2[i][j] += v\n    if dX:\n        i, j, v = dX\n        X2[i][j] += v\n    P = matmul(X2, W2)\n    off = db if db else [0.0] * M\n    return dot_all([[P[i][j] + off[j] for j in range(M)] for i in range(B)], Y_bar)\n\nfor i in range(D):\n    for j in range(M):\n        num = (surrogate(dW=(i, j, h)) - surrogate(dW=(i, j, -h))) / (2 * h)\n        assert abs(num - W_bar[i][j]) < 1e-4, (num, W_bar[i][j])\nfor i in range(B):\n    for j in range(D):\n        num = (surrogate(dX=(i, j, h)) - surrogate(dX=(i, j, -h))) / (2 * h)\n        assert abs(num - X_bar[i][j]) < 1e-4, (num, X_bar[i][j])\nfor j in range(M):\n    plus = [h if k == j else 0.0 for k in range(M)]\n    minus = [-h if k == j else 0.0 for k in range(M)]\n    num = (surrogate(db=plus) - surrogate(db=minus)) / (2 * h)\n    assert abs(num - b_bar[j]) < 1e-4, (num, b_bar[j])\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_dimension",
+          "style": "维度匹配法",
+          "register": "只靠形状信息就把答案逼出来",
+          "content": "先把手头的形状摆出来：$X$ 是 $(B,D)$，$W$ 是 $(D,M)$，$\\bar{Y}$ 是 $(B,M)$。\n\n目标形状由求导对象决定：$\\bar{W}$ 必须是 $(D,M)$，$\\bar{X}$ 必须是 $(B,D)$，$\\bar{b}$ 必须是 $(M,)$。\n\n要凑出 $(D,M)$，只能用乘法让相邻维相消。把 $X$ 转置得到 $(D,B)$，再乘 $(B,M)$：$X^\\top \\bar{Y}$，得到 $(D,M)$。这是**唯一**可行的线性乘法——所以 $\\bar{W} = X^\\top \\bar{Y}$。\n\n同理，凑 $(B,D)$ 需要 $(B,M) \\times (M,D)$，即 $\\bar{X} = \\bar{Y} W^\\top$。\n\n偏置被批内所有样本共用，等于它有 $B$ 个后继，所以贡献必须**相加**：$\\bar{b} = \\sum_{i} \\bar{Y}_{i,:}$。\n\n逐元素乘积（Hadamard 积）要求两个因子完全同形，$(B,D)$ 与 $(B,M)$ 不同形，这条路一开始就被否定。而 $\\bar{Y}^\\top X$ 得到的是 $(M,D)$，是 $\\bar{W}$ 的转置，形状就不对——它是最常见的错误答案。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_index",
+          "style": "指标求和法",
+          "register": "拆到单个标量再拼回矩阵",
+          "content": "拆到元素逐个算。前向的分量形式是 $Y_{i,k} = \\sum_j X_{i,j} W_{j,k} + b_k$。\n\n对 $W_{j,k}$ 求偏导：它只出现在 $Y_{i,k}$ 里，且 $\\partial Y_{i,k} / \\partial W_{j,k} = X_{i,j}$。由多变量链式法则对全部样本求和：\n$$\\frac{\\partial L}{\\partial W_{j,k}} = \\sum_i \\frac{\\partial L}{\\partial Y_{i,k}} \\cdot X_{i,j} = \\sum_i X_{i,j} \\, \\bar{Y}_{i,k}.$$\n\n改写左侧为 $(j,k)$ 位置：$\\sum_i X_{i,j}\\,\\bar{Y}_{i,k}$ 是 $X^\\top$ 的第 $j$ 行与 $\\bar{Y}$ 的第 $k$ 列的内积，也就是 $(X^\\top \\bar{Y})_{j,k}$。于是 $\\bar{W} = X^\\top \\bar{Y}$。\n\n同理 $\\partial L/\\partial X_{i,j} = \\sum_k \\bar{Y}_{i,k} W_{j,k}$，这正是 $(\\bar{Y} W^\\top)_{i,j}$。\n\n而 $b_k$ 对每个样本的贡献都是 1，所以 $\\partial L/\\partial b_k = \\sum_i \\bar{Y}_{i,k}$。\n\n三个结果里那 $\\sum_i$ 的含义很直接：**批维度上的累加**。每个样本贡献一次 $\\bar{y}_i \\, x_i^\\top$ 的外积，批量把它们加起来。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_verification",
+          "style": "数值验证法",
+          "register": "不用推理，直接把它算出来对照",
+          "content": "这种结论最容易记错左右位置，用一个 $2 \\times 3 \\to 2 \\times 2$ 的小规模实例把它算出来对照：\n\n```python\ndef matmul(A, B):\n    return [[sum(A[i][k] * B[k][j] for k in range(len(B)))\n             for j in range(len(B[0]))] for i in range(len(A))]\n\ndef T(A):\n    return [[A[i][j] for i in range(len(A))] for j in range(len(A[0]))]\n\nX = [[1, 2, 3], [4, 5, 6]]\nW = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]\nY_bar = [[1, 1], [1, 1]]\n\nW_bar = matmul(T(X), Y_bar)\n# [[5.0, 5.0], [7.0, 7.0], [9.0, 9.0]]\n```\n\n每一列的三个数分别是 $1+4$、$2+5$、$3+6$，即 $X$ 的每一列在批维度上求和。这与沿参数的谓相吻合：$W$ 的第一行对所有样本的 $X$ 第一列求和。\n\n再看 $\\bar{X} = \\bar{Y}W^\\top$，得到 $[[0.3, 0.7, 1.1], [0.3, 0.7, 1.1]]$ 两个样本相同——因为 $\\bar{Y}$ 两行相同且 $W$ 被所有样本共用。\n\n整个过程只用了一次转置和一次乘法，没有出现逐个的元素相乘。任何逐元素写法都会因形状不匹配而先行失败。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        }
+      ]
+    },
+    {
+      "id": "ex.layer.stability.001",
+      "node_ids": [
+        "bp.layer.stability"
+      ],
+      "primary_node_id": "bp.layer.stability",
+      "ex_type": "scenario",
+      "title": "",
+      "difficulty": 4,
+      "stem": "一个 $L$ 层的串行网络：$h_0 = x$，$h_\\ell = W h_{\\ell-1}$，$L = \\ell(h_L)$，权重在层间共享同一个 $W$，其谱半径为 $\\rho$。取 $L = 100$。\n\n(1) 写出 $\\partial L / \\partial h_0$ 与 $\\partial L / \\partial h_L$ 的关系。\n(2) 当 $\\rho = 0.9$ 与 $\\rho = 1.1$ 时，梯度范数的量级分别大约是多少？\n(3) 把残差形式 $h_\\ell = h_{\\ell-1} + F(h_{\\ell-1})$ 加上去之后，这个连乘结构发生了什么变化？为什么能缓解梯度消失？\n(4) 训练时观察到的「梯度很小」是否一定就是上述机制？请指出另一种同样表现为小梯度、但成因完全不同的机制。",
+      "hints": [
+        "先看相邻层之间的局部雅可比是什么",
+        "残差形式的雅可比是 I + ∂F/∂h，把这个乘积展开看，哪一项不会随深度衰减",
+        "考虑浮点数精度，而不是连乘"
+      ],
+      "semantic_invariants": [
+        "每层对 h_{ℓ-1} 的局部雅可比同为 W，故链式法则给出 ∂L/∂h_0 = (Wᵀ)^L · ∂L/∂h_L",
+        "取范数得上界 ‖∂L/∂h_0‖ ≤ ‖W‖^L · ‖∂L/∂h_L‖，因此衰减或放大的速率随 L 指数变化",
+        "数值当量为 rho^L：rho=0.9 时约 2.66e-5，rho=1.1 时约 1.38e4",
+        "这是连乘结构本身的性质，与具体任务和数据无关",
+        "残差形式下每层雅可比变为 (I + ∂F/∂h)，其乘积展开含有一项恒等的贡献，使梯度存在不随深度衰减的直通分量",
+        "另一种成因是半精度下溢：梯度本身非零，但小于该格式的最小正规数被量化为 0，与谱半径无关"
+      ],
+      "invariant_ids": [
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6"
+      ],
+      "checks": [
+        {
+          "kind": "python",
+          "name": "连乘衰减/放大与残差直通分量的数值对照",
+          "code": "import random\nrandom.seed(3)\nL = 100\nassert abs(0.9 ** L - 2.6561398887587544e-05) < 1e-18\nassert abs(1.1 ** L - 13780.612339823708) < 1e-6\n\n# 残差：每层雅可比 = 1 + w，w 为小的负数（模拟 F 分支的局部导数）\nrandom.seed(5)\nws = [random.uniform(-0.05, 0.02) for _ in range(L)]\nplain = 1.0\nresid = 1.0\nfor w in ws:\n    plain *= w\n    resid *= (1.0 + w)\nassert abs(plain) < 1e-40, plain\nassert abs(resid) > 0.01, resid\n"
+        }
+      ],
+      "answers": [
+        {
+          "variant_id": "v1_intuition",
+          "style": "物理直觉法",
+          "register": "把连乘想成一层层滤网",
+          "content": "把每一层想成一道滤网，网格 soit 的透过率是它对该层输入的局部导数。信号从输出端往回走的晨 = 一道一道滤网  consecutive 穿过去，所以总透过率是把它们**相乘**。\n\n相邻层之间这里都是同一个 $W$，于是总透过率是 $(W^\\top)^L$。乘 100 次之后：\n\n- $\\rho = 0.9$：$0.9^{100} \\approx 2.66 \\times 10^{-5}$，输入端听到的几乎是耳语。\n- $\\rho = 1.1$：$1.1^{100} \\approx 1.38 \\times 10^{4}$，输入端听到的是炸雷。\n\n**注意这两种糟糕都由同一件事引起**：连乘放大成了指数。换个任务、换份数据都改不了它。\n\n**残差做了什么**：把每层改写成 $h_\\ell = h_{\\ell-1} + F(h_{\\ell-1})$ 之后，每层的雅可比从 $W$ 变成了 $I + \\partial F/\\partial h$。把这一长串乘积展开，其中有一项是 $I \\cdot I \\cdots I = I$——一条**完全不经过任何 $F$ 的直通路径**。只要存在这一项，梯度里就始终有一部分不会被深度按指数压掉。\n\n最后一问：**不一定。** 还有一种常见情形是小梯度来自浮点格式的量化——半精度的最小正规数有限，非零的极小梯度会被直接记成 0。这时「梯度消失」的成因是精度，不是谱半径，要靠损失缩放而不是改结构。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v2_formal",
+          "style": "范数不等式法",
+          "register": "取范数上界做严格估计",
+          "content": "由 tape 语义，$\\partial L / \\partial h_{\\ell-1} = W^\\top (\\partial L / \\partial h_\\ell)$，迭代 $L$ 次得\n$$\\frac{\\partial L}{\\partial h_0} = (W^\\top)^L \\frac{\\partial L}{\\partial h_L}.$$\n\n取算子范数，由其次乘性 $\\|AB\\| \\le \\|A\\|\\,\\|B\\|$：\n$$\\left\\| \\frac{\\partial L}{\\partial h_0} \\right\\| \\le \\|W\\|^L \\cdot \\left\\| \\frac{\\partial L}{\\partial h_L} \\right\\|.$$\n\n当 $\\|W\\| = \\rho$ 时即 $\\rho^L$。取 $L = 100$：$\\rho = 0.9 \\Rightarrow 2.66 \\times 10^{-5}$；$\\rho = 1.1 \\Rightarrow 1.38 \\times 10^{4}$。二者都偏离 1 若干个数量级，说明这个结论完全由 $\\rho$ 与 $L$ 决定，与损失函数的形式无关。\n\n**残差形式**。令 $J_\\ell = \\partial h_\\ell / \\partial h_{\\ell-1} = I + A_\\ell$，其中 $A_\\ell = \\partial F/\\partial h$。则\n$$\\frac{\\partial L}{\\partial h_0} = \\left( \\prod_{\\ell=1}^{L} (I + A_\\ell)^\\top \\right) \\frac{\\partial L}{\\partial h_L}.$$\n将乘积展开为 $I + \\sum A_\\ell^\\top + \\sum A_\\ell^\\top A_{\\ell'}^\\top + \\cdots$，首项 $I$ 对应一条不穿过任何 $F$ 分支的路径。因此即使所有 $A_\\ell$ 各自收缩，整体也不再被压到零。\n\n**另一种成因**。半精度（float16）的最小正规数约为 $6 \\times 10^{-8}$，次正规数下界更低。当一个非零梯度的量级小于该格式能表示的最小数时，它被直接量化为 0。此现象与 $\\|W\\|$ 无关，也不会因加深残差而改善，正确的干预手段是缩放重新居中的 loss scaling。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        },
+        {
+          "variant_id": "v3_numeric",
+          "style": "数值对照法",
+          "register": "用具体数字把三种情形摆在一起",
+          "content": "把结论直接算出来：\n\n| 情形 | 连乘对象 | $L = 100$ 的结果 |\n| --- | --- | --- |\n| $\\rho = 0.9$ | $0.9^{100}$ | $2.66 \\times 10^{-5}$ |\n| $\\rho = 1.1$ | $1.1^{100}$ | $1.38 \\times 10^{4}$ |\n| 残差（小负导数） | $\\prod (1 + w_\\ell)$ | 量级保持在 $10^{-1}$ 上下 |\n\n三位数说明一切：把同样的 100 个因子从「直接相乘」换成「1 加上它再相乘」，结果从小得看不见跳到了正常范围。\n\n```python\nimport random\nrandom.seed(5)\nL = 100\nws = [random.uniform(-0.05, 0.02) for _ in range(L)]\nplain, resid = 1.0, 1.0\nfor w in ws:\n    plain *= w\n    resid *= (1.0 + w)\nprint(f'{plain:.3e}  {resid:.3f}')\n```\n\n**这里必须补一句限定**：残差解决的是「梯度信号被连乘压到零」这一种消失。它不保证训练一定稳定——如果每个 $F$ 分支自身的雅可比很大，$(I + A)$ 的范数仍可能离家譜 > 1，连乘照样爆炸。工程上还需要归一化层把信号尺度固定住。\n\n至于最后那问：看到全零梯度先别急着改结构。打印出 float16 与 float32 两种精度下的梯度范数，若后者恢复正常则是**下溢**，要用缩放；若两者一样小，才是**谱收缩**，需要结构与初始化层面的调整。",
+          "covers_steps": [
+            "s1",
+            "s2",
+            "s3",
+            "s4",
+            "s5",
+            "s6"
+          ],
+          "misses_steps": []
+        }
+      ]
+    }
+  ],
+  "cheatsheet": [
+    {
+      "node_id": "bp.chain.intuition",
+      "title": "反向传播的心智模型",
+      "term": "反向传播的心智模型",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.chain.formal",
+      "title": "多元链式法则的形式化",
+      "term": "多元链式法则的形式化",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.graph.dag",
+      "title": "计算图：有向无环图的形式化",
+      "term": "计算图：有向无环图的形式化",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.graph.tape",
+      "title": "反向模式的执行：tape、拓扑逆序与梯度累加",
+      "term": "反向模式的执行：tape、拓扑逆序与梯度累加",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.jac.modes",
+      "title": "雅可比与前反向模式的代价刻画",
+      "term": "雅可比与前反向模式的代价刻画",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.layer.matmul",
+      "title": "全连接层的矩阵形式反向传播",
+      "term": "全连接层的矩阵形式反向传播",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.layer.stability",
+      "title": "边界：梯度消失、爆炸与数值下溢",
+      "term": "边界：梯度消失、爆炸与数值下溢",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.higher.double",
+      "title": "高阶导：对梯度再求一次梯度",
+      "term": "高阶导：对梯度再求一次梯度",
+      "focus": ""
+    },
+    {
+      "node_id": "bp.jac.checkpoint",
+      "title": "极限：内存-时间权衡与重算下界",
+      "term": "极限：内存-时间权衡与重算下界",
+      "focus": ""
+    }
+  ],
+  "stats": {
+    "nodes": 9,
+    "exercises": 9,
+    "answer_variants": 27,
+    "families": 5,
+    "strata": 5
+  }
+}

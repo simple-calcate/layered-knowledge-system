@@ -1,0 +1,87 @@
+{
+  "schema": "axes-scale/v1",
+  "version": 1,
+  "updated_at": "2026-10-29",
+
+  "y_axis": {
+    "key": "stratum",
+    "name": "深度轴 · 机制层（strata）",
+    "rule": "自上而下穿透同一概念的实现层级；每个节点只能落在一个机制层",
+    "levels": [
+      {
+        "value": 1,
+        "key": "intuition",
+        "label": "直觉与心智模型",
+        "desc": "用类比、图像、记账隐喻说清「它在干什么」，不引入符号负担"
+      },
+      {
+        "value": 2,
+        "key": "formalization",
+        "label": "数学形式化",
+        "desc": "严格的符号定义、定理、推导；这是「可背诵层」的主体"
+      },
+      {
+        "value": 3,
+        "key": "execution",
+        "label": "算法与执行",
+        "desc": "数据结构、遍历顺序、内存布局、伪代码 / 真实实现语义"
+      },
+      {
+        "value": 4,
+        "key": "boundary",
+        "label": "边界与失效",
+        "desc": "什么时候不成立、精度何时崩、哪些输入会让它给出错的答案"
+      },
+      {
+        "value": 5,
+        "key": "limit",
+        "label": "资源与理论极限",
+        "desc": "时间/内存/通信的下界，信息论或硬件层面的不可逾越约束"
+      }
+    ]
+  },
+
+  "x_axis": {
+    "key": "family",
+    "name": "广度轴 · 概念族（family）",
+    "rule": "一列是一个概念族；同一族在不同机制层上的切片天然构成一列。列序只影响摆放，不影响数据主键",
+    "families": [
+      {
+        "key": "scalar_core",
+        "x": 1,
+        "label": "标量核心",
+        "desc": "链式法则本体与其最小可用形式"
+      },
+      {
+        "key": "compute_graph",
+        "x": 2,
+        "label": "计算图结构",
+        "desc": "把复合函数显式化为 DAG，以及在这张图上跑的遍历算法"
+      },
+      {
+        "key": "jacobian_mode",
+        "x": 3,
+        "label": "雅可比与微分模式",
+        "desc": "前向模式 / 反向模式的算子级刻画与代价分析"
+      },
+      {
+        "key": "matrix_layer",
+        "x": 4,
+        "label": "矩阵层与张量层",
+        "desc": "常见网络层的矩阵化梯度，以及现实里真正会踩的数值坑"
+      },
+      {
+        "key": "higher_order",
+        "x": 5,
+        "label": "高阶导",
+        "desc": "对梯度再求梯度带来的图、代价与稳定性问题"
+      }
+    ]
+  },
+
+  "orthogonality_check": {
+    "same_stratum_rule": "同一 stratum 的节点必须是同类陈述：y=2 只能放定义/定理，禁止混入实现细节",
+    "same_family_rule": "同一 family 内允许跨 stratum 连边（prerequisites 指向更高层的 stratum-1 或跨族），禁止同层互相依赖",
+    "gap_policy": "允许空缺。空白格子不补概念，画布上渲染为淡色占位"
+  }
+}
