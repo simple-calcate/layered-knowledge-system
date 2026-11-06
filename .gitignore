@@ -1,6 +1,10 @@
 # 依赖
 node_modules/
 
+# Python 缓存
+__pycache__/
+*.pyc
+
 # 构建产物（可随时重建：npm run sync:app / npm run export:training）
 web/dist/
 out/

@@ -36,7 +36,8 @@ python3 pipeline/validate.py     # 自检，看到「质检通过」再提交
 
 1. 在 PR 里写清依据：出处、推理、反例，哪一条要点该改
 2. 修改对应的 `canonical/c.<问题>.json`，同时更新 `basis`（认定依据）和 `review`（审核人）
-3. `CODEOWNERS` 会自动要求维护者审阅这个文件，`@simple-calcate`
+3. `main` 已开分支保护，`CODEOWNERS` 会**硬性阻断**这个 PR，
+   直到 `@simple-calcate` 点 Approve 才能合并（不是"自动请求审阅"那种软提醒）
 4. 合并后由维护者重新生成画布与训练分片
 
 这条审核门禁是刻意的：**训练数据里出现一条错的，AI 就会学到一条错的。**
@@ -79,9 +80,15 @@ archive/unadopted/          旧版被判定与正确答案冲突的内容，只�
 
 1. `python3 tools/new_card.py` 生成卡片，写内容
 2. `python3 pipeline/validate.py` 本地自检
-3. 建分支、提交、开 PR
-4. CI 跑同一份质检；只加说法的 PR 审阅快，动 `canonical/` 的必须有 code owner 批准
+3. 建分支、提交、开 PR（`main` 受保护，不能直接 push）
+4. CI 跑同一份质检：
+   - 只动 `questions/` / `answers/` 的 PR **不要求批准**，CI 过了就能合并
+   - 动了 `canonical/` 的 PR 必须等 code owner 批准，系统会挡住合并按钮
 5. 合并后画布与训练分片由维护者重新生成
+
+> 为什么"只加一条说法"也要走 PR：GitHub 的分支保护是**整条分支**的规则，
+> 没法只对某个目录放开。所以用「批准数 = 0 + 要求 code owner 审阅」这个组合，
+> 把强制审核精确落在 `canonical/` 上，其余 PR 只是走个流程、不需要等人。
 
 ## 写卡片的几条规矩
 

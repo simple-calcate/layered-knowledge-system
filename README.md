@@ -55,9 +55,9 @@ pipeline/
   garbage_scan.py / repair.py      辅助工具
 tools/
   new_card.py                      交互式生成一张贡献卡片
-  push_via_api.py                  github.com 不通时改走 REST 推送
+  push_via_api.py                  github.com 不通时改走 REST；受保护分支自动走 PR
 web/                               React 19 + React Flow 画布 + 答案抽屉
-.github/CODEOWNERS                 保护 canonical/，改动须 code owner 审核
+.github/CODEOWNERS                 保护 canonical/，改动须 code owner 批准（已硬性生效）
 .github/workflows/validate.yml     PR 自动质检
 CONTRIBUTING.md                   贡献者指南
 ```
@@ -110,19 +110,33 @@ python3 pipeline/validate.py   # 自检
 
 然后开 PR。CI 跑同一份质检：
 
-- 只加 `answers/` 的 PR 审阅快，通过即可合并
-- 动 `canonical/` 的 PR，`CODEOWNERS` 会要求维护者审核（请在仓库设置里开启
-  **Require review from Code Owners**），CI 也会提示
+- `main` 已开分支保护，**所有改动都必须走 PR**，没有人能直接 push 到 main
+- 只加 `answers/` / `questions/` 的 PR 不要求批准，CI 过了就能合并
+- 动 `canonical/` 的 PR 被 **Require review from Code Owners** 硬性阻断，
+  必须 `@simple-calcate` 批准才能合并；CI 也会提示
 
 合并后由维护者重新生成画布与训练分片。完整说明见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ### 推送到 GitHub
 
-正常环境 `git push` 即可。若网络能连 `api.github.com` 但连不上 `github.com`
-（`git push` 报 `Failed to connect to github.com:443`），改用 REST 通道：
+`main` 受分支保护，正常环境下应当 **建分支 → 开 PR → 合并**。
+若网络能连 `api.github.com` 但连不上 `github.com`（`git push` 报
+`Failed to connect to github.com:443`），改用 REST 通道，它会自动走同样的 PR 流程：
 
 ```bash
 python3 tools/push_via_api.py -m "提交说明"
+python3 tools/push_via_api.py -m "应急直推" --direct   # 跳过 PR，仅在紧急时用
 ```
 
-它读 `git ls-files` 决定提交范围，走 GitHub Git Data API，前提是先 `gh auth login`。
+工具内部：
+
+1. 从远端 `main` 的 HEAD 取 **parent**，用 `git ls-files` 的文件一次性建树，
+   再建 commit（历史是累积的，不会覆盖旧提交）
+2. 探测 `main` 是否受保护：受保护就建临时分支 → 开 PR → 合并 → 删除临时分支；
+   未受保护则快进更新 `main`
+3. 认证用 `gh auth token`，前提是先 `gh auth login`
+
+一个刻意的取舍：保护规则里 `Include administrators` 是**关**的。
+也就是说 **CODEOWNERS 硬性挡住的是外部贡献者**，仓库主人仍可自助合并自己的 PR——
+否则连日常同步都要主人给自己点一次 Approve，工作流会被卡死。
+想连主人一起锁死，去仓库设置里勾上它即可，但那样每次同步都得人工批准。
