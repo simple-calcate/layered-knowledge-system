@@ -1,0 +1,26 @@
+{
+  "schema": "answer/v3",
+  "id": "compare.basic.01",
+  "concept_id": "knowledge",
+  "question_id": "compare.basic",
+  "canonical_id": "c.compare.basic",
+  "style": "平实叙述",
+  "register": "说明文",
+  "content": "经典认识论把知识拆成三个条件：说法本身为真、主体确实相信它、并且能给出足够的理由，合起来叫「确证的真信念」。信念只满足第二条，所以「我相信」不等于「我知道」；即使碰巧说对了，没有理由也仍不算知识。信息则是另一条轴：它是可以记录、复制、传输的符号与数据，不需要谁理解它；知识必须被某个认知主体接收、弄懂，并能拿它继续推理，这正是数据—信息—知识—智慧层级里从信息到知识那一步。还要留意边界：1963 年 Gettier 用反例说明这三个条件加起来仍可能漏判，所以这套划界是被持续修订的分析框架，不是可以无条件套用的公式。",
+  "covers": [
+    "i1",
+    "i2",
+    "i3",
+    "i4"
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "本库认定的正确答案，依据见 canonical 卡片"
+  },
+  "created_at": "2026-11-06",
+  "status": "published"
+}

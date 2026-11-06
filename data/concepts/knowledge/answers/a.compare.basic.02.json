@@ -1,0 +1,26 @@
+{
+  "schema": "answer/v3",
+  "id": "compare.basic.02",
+  "concept_id": "knowledge",
+  "question_id": "compare.basic",
+  "canonical_id": "c.compare.basic",
+  "style": "分点说明",
+  "register": "口语",
+  "content": "可以拿三把尺子来分。第一把量「真不真」、第二把量「信不信」、第三把量「有没有理由」，三样齐了才叫知识——这就是「确证的真信念」那套经典定义。信念只过了第二把尺子；哪怕蒙对了，没理由也还是不算。信息不在这三把尺子上，它是能抄能传的符号，躺在硬盘里谁都不懂也照样是信息；只有当有人把它读懂、能顺着它往下推，它才变成知识。最后别把这套定义当铁律：Gettier 在 1963 年举过反例，三条齐了也可能不是知识，所以它是认识论里不断修补的框架。",
+  "covers": [
+    "i1",
+    "i2",
+    "i3",
+    "i4"
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "本库认定的正确答案，依据见 canonical 卡片"
+  },
+  "created_at": "2026-11-06",
+  "status": "published"
+}
