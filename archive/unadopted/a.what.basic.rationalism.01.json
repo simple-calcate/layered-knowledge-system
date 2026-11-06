@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v2",
+  "id": "what.basic.rationalism.01",
+  "concept_id": "knowledge",
+  "question_id": "what.basic",
+  "stance_id": "what.basic.rationalism",
+  "style": "分点说明",
+  "register": "议论文",
+  "content": "感官只递送杂多的材料，今天看到的天鹅是白的，并不能保证明天那只也是白的，所以经验给不了必然性。知识之所以称得上知识，靠的是理性自身提供的形式与规则，比如因果、同一与数量关系。经验负责触发，确定性却只能出自理性结构。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·K",
+    "link": ""
+  },
+  "source": {
+    "type": "book",
+    "note": "近代理性主义立场的通俗转述"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

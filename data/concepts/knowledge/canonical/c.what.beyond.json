@@ -1,0 +1,29 @@
+{
+  "schema": "canonical/v3",
+  "id": "c.what.beyond",
+  "question_id": "what.beyond",
+  "label": "正确答案要点",
+  "invariants": [
+    {
+      "id": "i1",
+      "claim": "先约定判定标准，再讨论有没有"
+    },
+    {
+      "id": "i2",
+      "claim": "按标准分档回答，而不是简单说有或没有"
+    }
+  ],
+  "basis": "以程度论为准：先约定判定标准再分档回答，避免「有或没有」的二分。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "review": {
+    "status": "approved",
+    "by": "simple-calcate",
+    "at": "2026-11-06",
+    "policy": "改动本文件须 code owner 审核"
+  },
+  "created_at": "2026-11-04",
+  "status": "canonical"
+}

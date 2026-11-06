@@ -1,0 +1,25 @@
+{
+  "schema": "answer/v3",
+  "id": "what.basic.02",
+  "concept_id": "knowledge",
+  "question_id": "what.basic",
+  "canonical_id": "c.what.basic",
+  "style": "比喻",
+  "register": "口语",
+  "content": "把一个人的一生想成一本流水账：每次经历都记一笔，记多了就发现某些笔迹总是一起出现。把这些反复出现的搭配抄成几条口诀，口诀就是知识。账本里没写过的东西，口诀里也不会凭空冒出来——所以说到底，知识是经验攒出来的，是经验主义落到纸面上的样子。",
+  "covers": [
+    "i1",
+    "i2",
+    "i3"
+  ],
+  "author": {
+    "name": "示例作者·阿岚",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "与上一条意思相同，仅换表达"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

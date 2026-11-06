@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "how.basic.01",
+  "concept_id": "knowledge",
+  "question_id": "how.basic",
+  "canonical_id": "c.how.basic",
+  "style": "分点说明",
+  "register": "说明文",
+  "content": "先反复观察，把总是一起出现的现象记下来；再从中归纳出一条规律；最后拿新的观察去检验它。规律若被新经验推翻，就改写或丢弃。获取知识因此是一个不断被经验修正的循环，而不是一次性的顿悟。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·K",
+    "link": ""
+  },
+  "source": {
+    "type": "book",
+    "note": "依据经验主义认识论的通俗转述"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

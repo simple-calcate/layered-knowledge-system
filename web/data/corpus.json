@@ -1,0 +1,528 @@
+{
+  "app": {
+    "title": "知识 · 二维问题网",
+    "subtitle": "一个被反复追问的名词。每道题有一个经审核认定的正确答案，并允许多种意思相同、表达不同的说法。",
+    "version": 3,
+    "generated_at": "2026-11-06T11:09:11+00:00",
+    "source_path": "data/concepts",
+    "axes": {
+      "x_label": "X · 问题类型（横向展开）",
+      "y_label": "Y · 追问层次（纵向深入）",
+      "x_list": [
+        {
+          "x": 1,
+          "key": "what",
+          "label": "是什么",
+          "desc": "界定这个概念本身"
+        },
+        {
+          "x": 2,
+          "key": "why",
+          "label": "为什么",
+          "desc": "为什么需要它、它为何存在"
+        },
+        {
+          "x": 3,
+          "key": "how",
+          "label": "如何获取",
+          "desc": "通过什么途径得到它"
+        },
+        {
+          "x": 4,
+          "key": "compare",
+          "label": "如何区分",
+          "desc": "与相邻概念、内部差异"
+        }
+      ],
+      "y_list": [
+        {
+          "y": 1,
+          "key": "basic",
+          "label": "基本界定",
+          "desc": "直接回答，落在本概念上"
+        },
+        {
+          "y": 2,
+          "key": "boundary",
+          "label": "边界辨析",
+          "desc": "找反例、划边界、找内部差异"
+        },
+        {
+          "y": 3,
+          "key": "beyond",
+          "label": "跨界追问",
+          "desc": "换主体、换尺度、换前提后还成立吗"
+        }
+      ]
+    },
+    "gap_policy": "允许空格。空格代表'还没人问过'，不为凑满矩阵而编造问题。"
+  },
+  "concept": {
+    "schema": "concept/v3",
+    "id": "knowledge",
+    "term": "知识",
+    "aliases": [
+      "Knowledge",
+      "所知"
+    ],
+    "summary": "一个被反复追问的名词。每道题有一个经审核认定的正确答案，并允许多种意思相同、表达不同的说法。",
+    "author": {
+      "name": "simple-calcate",
+      "link": "https://github.com/simple-calcate"
+    },
+    "created_at": "2026-11-04",
+    "status": "published"
+  },
+  "concepts": [
+    {
+      "schema": "concept/v3",
+      "id": "knowledge",
+      "term": "知识",
+      "aliases": [
+        "Knowledge",
+        "所知"
+      ],
+      "summary": "一个被反复追问的名词。每道题有一个经审核认定的正确答案，并允许多种意思相同、表达不同的说法。",
+      "author": {
+        "name": "simple-calcate",
+        "link": "https://github.com/simple-calcate"
+      },
+      "created_at": "2026-11-04",
+      "status": "published",
+      "question_count": 8
+    }
+  ],
+  "questions": [
+    {
+      "id": "what.basic",
+      "concept_id": "knowledge",
+      "x": 1,
+      "y": 1,
+      "breadth_label": "是什么",
+      "depth_label": "基本界定",
+      "text": "知识是什么？",
+      "note": "最原点的追问，先界定这个概念本身。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": {
+        "id": "c.what.basic",
+        "invariants": [
+          {
+            "id": "i1",
+            "claim": "知识的内容最终来自感官经验"
+          },
+          {
+            "id": "i2",
+            "claim": "没有经验输入就不会产生新的知识"
+          },
+          {
+            "id": "i3",
+            "claim": "所谓定义只是对过往经验总和的归纳与外化"
+          }
+        ],
+        "basis": "以经验主义认识论为准：知识的内容最终来自感官经验，定义只是对过往经验总和的归纳与外化。",
+        "author": {
+          "name": "simple-calcate",
+          "link": ""
+        },
+        "review": {
+          "status": "approved",
+          "by": "simple-calcate",
+          "at": "2026-11-06",
+          "policy": "改动本文件须 code owner 审核"
+        }
+      },
+      "answers": [
+        {
+          "id": "what.basic.01",
+          "style": "平实叙述",
+          "register": "说明文",
+          "content": "知识是人类对自己过往经验总和的一种定义。人把反复出现的感受、动作与结果记下来，归并成可以复用的说法，这些说法的外化就是知识。离开经验输入，就没有可供归纳的材料，也就不会产生新的知识。因此知识不来自凭空的推演，本质上是经验主义的外化。",
+          "content_hash": "2dc1dcd4d9f33958",
+          "covers": [
+            "i1",
+            "i2",
+            "i3"
+          ],
+          "misses": [],
+          "author": {
+            "name": "simple-calcate",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "本库认定的正确答案，依据见 canonical 卡片"
+          },
+          "created_at": "2026-11-04"
+        },
+        {
+          "id": "what.basic.02",
+          "style": "比喻",
+          "register": "口语",
+          "content": "把一个人的一生想成一本流水账：每次经历都记一笔，记多了就发现某些笔迹总是一起出现。把这些反复出现的搭配抄成几条口诀，口诀就是知识。账本里没写过的东西，口诀里也不会凭空冒出来——所以说到底，知识是经验攒出来的，是经验主义落到纸面上的样子。",
+          "content_hash": "3a5ba6a9950d49ed",
+          "covers": [
+            "i1",
+            "i2",
+            "i3"
+          ],
+          "misses": [],
+          "author": {
+            "name": "示例作者·阿岚",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "与上一条意思相同，仅换表达"
+          },
+          "created_at": "2026-11-04"
+        }
+      ],
+      "has_canonical": true,
+      "answer_count": 2
+    },
+    {
+      "id": "what.boundary",
+      "concept_id": "knowledge",
+      "x": 1,
+      "y": 2,
+      "breadth_label": "是什么",
+      "depth_label": "边界辨析",
+      "text": "各种知识之间的区别是什么？",
+      "note": "往内部追问：知识是不是同一种东西。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": null,
+      "answers": [],
+      "has_canonical": false,
+      "answer_count": 0
+    },
+    {
+      "id": "what.beyond",
+      "concept_id": "knowledge",
+      "x": 1,
+      "y": 3,
+      "breadth_label": "是什么",
+      "depth_label": "跨界追问",
+      "text": "除了人类，其他生物有知识吗？",
+      "note": "换主体：把'人类'这个前提拿掉。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": {
+        "id": "c.what.beyond",
+        "invariants": [
+          {
+            "id": "i1",
+            "claim": "先约定判定标准，再讨论有没有"
+          },
+          {
+            "id": "i2",
+            "claim": "按标准分档回答，而不是简单说有或没有"
+          }
+        ],
+        "basis": "以程度论为准：先约定判定标准再分档回答，避免「有或没有」的二分。",
+        "author": {
+          "name": "simple-calcate",
+          "link": ""
+        },
+        "review": {
+          "status": "approved",
+          "by": "simple-calcate",
+          "at": "2026-11-06",
+          "policy": "改动本文件须 code owner 审核"
+        }
+      },
+      "answers": [
+        {
+          "id": "what.beyond.01",
+          "style": "分点说明",
+          "register": "说明文",
+          "content": "先别急着回答有或没有，先约定按什么判定：能不能记住过去的事件，能不能据此调整行为，能不能把这种调整传给同伴。按这三条分档，蜜蜂能传递方位，章鱼能记住并解决具体问题，猩猩能使用工具并观察同类——它们各自占住某些档位。于是答案不是一句'有'或'没有'，而是'在哪些标准上、到什么程度'。",
+          "content_hash": "02f853d2d9655eec",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "simple-calcate",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "本库认定的正确答案，依据见 canonical 卡片"
+          },
+          "created_at": "2026-11-04"
+        },
+        {
+          "id": "what.beyond.02",
+          "style": "设问推进",
+          "register": "口语",
+          "content": "问'动物有没有知识'，其实得先问'你拿什么算知识'。定成'记得住、会改招、能传给同伴'这三条，再一条条对：传方位的蜜蜂占第一条，会开瓶盖的章鱼占前两条，会互相学工具的猩猩三条都沾边。这么一排就清楚了——不是非黑即白，而是各占几档、各到什么程度。标准先摆出来，争论才有落点。",
+          "content_hash": "2f92e74a0f06dfc2",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "示例作者·阿岚",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "与上一条意思相同，仅换表达"
+          },
+          "created_at": "2026-11-04"
+        }
+      ],
+      "has_canonical": true,
+      "answer_count": 2
+    },
+    {
+      "id": "why.basic",
+      "concept_id": "knowledge",
+      "x": 2,
+      "y": 1,
+      "breadth_label": "为什么",
+      "depth_label": "基本界定",
+      "text": "为什么人类需要知识？",
+      "note": "从用途与生存压力切入。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": {
+        "id": "c.why.basic",
+        "invariants": [
+          {
+            "id": "i1",
+            "claim": "知识的价值在于能指导行动、减少试错"
+          },
+          {
+            "id": "i2",
+            "claim": "没有知识，每一次决策都得从头试起"
+          }
+        ],
+        "basis": "以实用主义为准：知识的价值在于指导行动、减少重复试错。",
+        "author": {
+          "name": "simple-calcate",
+          "link": ""
+        },
+        "review": {
+          "status": "approved",
+          "by": "simple-calcate",
+          "at": "2026-11-06",
+          "policy": "改动本文件须 code owner 审核"
+        }
+      },
+      "answers": [
+        {
+          "id": "why.basic.01",
+          "style": "平实叙述",
+          "register": "说明文",
+          "content": "知识的用处是让行动不必每次从零开始。知道了火会烫，就不必再伸手试一次；记住了季节与收成的关系，就不必每年重新赌一遍。没有这些积累，每一个决定都要靠当场试错，代价高到无法承受。",
+          "content_hash": "9d3baa62d2cd344c",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "simple-calcate",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "本库认定的正确答案，依据见 canonical 卡片"
+          },
+          "created_at": "2026-11-04"
+        },
+        {
+          "id": "why.basic.02",
+          "style": "对比反证",
+          "register": "口语",
+          "content": "假设一个群体什么都不记：上一代踩过的坑，下一代原样再踩一遍；今天验证过能吃的果子，明天还要重新冒一次险。所有判断都退化成当场试探，试错的代价一次次重复支付。知识就是用来省下这笔重复开销的东西——它把别人或自己从前试出来的结果，变成这一次的行动依据。",
+          "content_hash": "d0a64b49314eed94",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "示例作者·阿岚",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "与上一条意思相同，仅换表达"
+          },
+          "created_at": "2026-11-04"
+        }
+      ],
+      "has_canonical": true,
+      "answer_count": 2
+    },
+    {
+      "id": "why.boundary",
+      "concept_id": "knowledge",
+      "x": 2,
+      "y": 2,
+      "breadth_label": "为什么",
+      "depth_label": "边界辨析",
+      "text": "如果一个社会完全不积累知识，会怎样？",
+      "note": "用反事实逼出必要性。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": null,
+      "answers": [],
+      "has_canonical": false,
+      "answer_count": 0
+    },
+    {
+      "id": "how.basic",
+      "concept_id": "knowledge",
+      "x": 3,
+      "y": 1,
+      "breadth_label": "如何获取",
+      "depth_label": "基本界定",
+      "text": "人类如何才能获取知识？",
+      "note": "从途径与过程切入。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": {
+        "id": "c.how.basic",
+        "invariants": [
+          {
+            "id": "i1",
+            "claim": "通过观察与重复出现的经验归纳出规律"
+          },
+          {
+            "id": "i2",
+            "claim": "归纳出的规律必须能被新经验检验或推翻"
+          }
+        ],
+        "basis": "以经验路径为准：知识经感知、归纳、验证的循环获得，离开经验输入就没有新材料。",
+        "author": {
+          "name": "simple-calcate",
+          "link": ""
+        },
+        "review": {
+          "status": "approved",
+          "by": "simple-calcate",
+          "at": "2026-11-06",
+          "policy": "改动本文件须 code owner 审核"
+        }
+      },
+      "answers": [
+        {
+          "id": "how.basic.01",
+          "style": "分点说明",
+          "register": "说明文",
+          "content": "先反复观察，把总是一起出现的现象记下来；再从中归纳出一条规律；最后拿新的观察去检验它。规律若被新经验推翻，就改写或丢弃。获取知识因此是一个不断被经验修正的循环，而不是一次性的顿悟。",
+          "content_hash": "eed8350801fca8be",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "示例作者·K",
+            "link": ""
+          },
+          "source": {
+            "type": "book",
+            "note": "依据经验主义认识论的通俗转述"
+          },
+          "created_at": "2026-11-04"
+        },
+        {
+          "id": "how.basic.02",
+          "style": "流程叙述",
+          "register": "口语",
+          "content": "说白了就是多看、多记、多试。看得多了发现某两件事老搭伴出现，先猜一条规矩；下回遇到新情况，拿这条规矩去比一比。对得上就先留着，对不上就改。规矩永远处于'暂时没被推翻'的状态，所以获取知识没有终点，只有一轮一轮的检验。",
+          "content_hash": "01e9b30550005140",
+          "covers": [
+            "i1",
+            "i2"
+          ],
+          "misses": [],
+          "author": {
+            "name": "示例作者·阿岚",
+            "link": ""
+          },
+          "source": {
+            "type": "original",
+            "note": "与上一条意思相同，仅换表达"
+          },
+          "created_at": "2026-11-04"
+        }
+      ],
+      "has_canonical": true,
+      "answer_count": 2
+    },
+    {
+      "id": "compare.basic",
+      "concept_id": "knowledge",
+      "x": 4,
+      "y": 1,
+      "breadth_label": "如何区分",
+      "depth_label": "基本界定",
+      "text": "知识与信息、信念如何区分？",
+      "note": "与相邻概念划界。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": null,
+      "answers": [],
+      "has_canonical": false,
+      "answer_count": 0
+    },
+    {
+      "id": "compare.beyond",
+      "concept_id": "knowledge",
+      "x": 4,
+      "y": 3,
+      "breadth_label": "如何区分",
+      "depth_label": "跨界追问",
+      "text": "机器能拥有知识吗？",
+      "note": "再换一次主体，并引出判定标准问题。",
+      "author": {
+        "name": "simple-calcate",
+        "link": ""
+      },
+      "created_at": "2026-11-04",
+      "canonical": null,
+      "answers": [],
+      "has_canonical": false,
+      "answer_count": 0
+    }
+  ],
+  "stats": {
+    "concepts": 1,
+    "questions": 8,
+    "canonicals": 4,
+    "answers": 8,
+    "cells_filled": 8,
+    "cells_total": 12,
+    "cells_open": 4
+  }
+}

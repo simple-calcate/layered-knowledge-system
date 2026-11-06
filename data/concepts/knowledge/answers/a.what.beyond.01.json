@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "what.beyond.01",
+  "concept_id": "knowledge",
+  "question_id": "what.beyond",
+  "canonical_id": "c.what.beyond",
+  "style": "分点说明",
+  "register": "说明文",
+  "content": "先别急着回答有或没有，先约定按什么判定：能不能记住过去的事件，能不能据此调整行为，能不能把这种调整传给同伴。按这三条分档，蜜蜂能传递方位，章鱼能记住并解决具体问题，猩猩能使用工具并观察同类——它们各自占住某些档位。于是答案不是一句'有'或'没有'，而是'在哪些标准上、到什么程度'。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "本库认定的正确答案，依据见 canonical 卡片"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

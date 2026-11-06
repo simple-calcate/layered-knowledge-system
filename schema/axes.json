@@ -1,0 +1,24 @@
+{
+  "schema": "axes/v2",
+  "note": "两把标尺对所有概念通用。X 是问题类型，Y 是追问层次；坐标只是布局属性，问题的身份是 id。",
+  "x_axis": {
+    "key": "question_type",
+    "name": "X · 问题类型（横向展开）",
+    "levels": [
+      {"x": 1, "key": "what", "label": "是什么", "desc": "界定这个概念本身"},
+      {"x": 2, "key": "why", "label": "为什么", "desc": "为什么需要它、它为何存在"},
+      {"x": 3, "key": "how", "label": "如何获取", "desc": "通过什么途径得到它"},
+      {"x": 4, "key": "compare", "label": "如何区分", "desc": "与相邻概念、内部差异"}
+    ]
+  },
+  "y_axis": {
+    "key": "inquiry_depth",
+    "name": "Y · 追问层次（纵向深入）",
+    "levels": [
+      {"y": 1, "key": "basic", "label": "基本界定", "desc": "直接回答，落在本概念上"},
+      {"y": 2, "key": "boundary", "label": "边界辨析", "desc": "找反例、划边界、找内部差异"},
+      {"y": 3, "key": "beyond", "label": "跨界追问", "desc": "换主体、换尺度、换前提后还成立吗"}
+    ]
+  },
+  "gap_policy": "允许空格。空格代表'还没人问过'，不为凑满矩阵而编造问题。"
+}

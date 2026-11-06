@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "how.basic.02",
+  "concept_id": "knowledge",
+  "question_id": "how.basic",
+  "canonical_id": "c.how.basic",
+  "style": "流程叙述",
+  "register": "口语",
+  "content": "说白了就是多看、多记、多试。看得多了发现某两件事老搭伴出现，先猜一条规矩；下回遇到新情况，拿这条规矩去比一比。对得上就先留着，对不上就改。规矩永远处于'暂时没被推翻'的状态，所以获取知识没有终点，只有一轮一轮的检验。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·阿岚",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "与上一条意思相同，仅换表达"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

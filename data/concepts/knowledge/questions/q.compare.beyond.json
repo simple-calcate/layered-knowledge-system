@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "compare.beyond",
+  "concept_id": "knowledge",
+  "x": 4,
+  "y": 3,
+  "text": "机器能拥有知识吗？",
+  "note": "再换一次主体，并引出判定标准问题。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

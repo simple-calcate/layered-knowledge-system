@@ -1,0 +1,25 @@
+{
+  "schema": "answer/v3",
+  "id": "what.basic.01",
+  "concept_id": "knowledge",
+  "question_id": "what.basic",
+  "canonical_id": "c.what.basic",
+  "style": "平实叙述",
+  "register": "说明文",
+  "content": "知识是人类对自己过往经验总和的一种定义。人把反复出现的感受、动作与结果记下来，归并成可以复用的说法，这些说法的外化就是知识。离开经验输入，就没有可供归纳的材料，也就不会产生新的知识。因此知识不来自凭空的推演，本质上是经验主义的外化。",
+  "covers": [
+    "i1",
+    "i2",
+    "i3"
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "本库认定的正确答案，依据见 canonical 卡片"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

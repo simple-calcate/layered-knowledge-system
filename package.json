@@ -1,0 +1,37 @@
+{
+  "name": "layered-knowledge-system",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "概念知识网：一个名词 → 二维问题网 → 一个经审核的正确答案 → 多条同义改写，支持多人贡献",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173",
+    "typecheck": "tsc --noEmit",
+    "validate": "python3 pipeline/validate.py",
+    "scan:garbage": "python3 pipeline/garbage_scan.py",
+    "new:card": "python3 tools/new_card.py",
+    "sync:app": "python3 pipeline/export_app.py",
+    "export:training": "python3 pipeline/export_training.py"
+  },
+  "dependencies": {
+    "@xyflow/react": "^12.12.0",
+    "katex": "^0.19.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  }
+}

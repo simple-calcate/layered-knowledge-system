@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "why.basic.01",
+  "concept_id": "knowledge",
+  "question_id": "why.basic",
+  "canonical_id": "c.why.basic",
+  "style": "平实叙述",
+  "register": "说明文",
+  "content": "知识的用处是让行动不必每次从零开始。知道了火会烫，就不必再伸手试一次；记住了季节与收成的关系，就不必每年重新赌一遍。没有这些积累，每一个决定都要靠当场试错，代价高到无法承受。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "本库认定的正确答案，依据见 canonical 卡片"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

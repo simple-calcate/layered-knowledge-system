@@ -1,0 +1,4 @@
+# 正确答案（canon）是训练数据的真值来源，改动必须由 code owner 审核。
+# 其余卡片（questions/、answers/）任何贡献者都可以自由添加，不受此限制。
+# 配合仓库设置里的 "Require review from Code Owners" 生效。
+data/concepts/*/canonical/ @simple-calcate

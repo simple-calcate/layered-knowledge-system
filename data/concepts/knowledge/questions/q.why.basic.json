@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "why.basic",
+  "concept_id": "knowledge",
+  "x": 2,
+  "y": 1,
+  "text": "为什么人类需要知识？",
+  "note": "从用途与生存压力切入。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

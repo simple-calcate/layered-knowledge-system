@@ -1,0 +1,33 @@
+{
+  "schema": "canonical/v3",
+  "id": "c.what.basic",
+  "question_id": "what.basic",
+  "label": "正确答案要点",
+  "invariants": [
+    {
+      "id": "i1",
+      "claim": "知识的内容最终来自感官经验"
+    },
+    {
+      "id": "i2",
+      "claim": "没有经验输入就不会产生新的知识"
+    },
+    {
+      "id": "i3",
+      "claim": "所谓定义只是对过往经验总和的归纳与外化"
+    }
+  ],
+  "basis": "以经验主义认识论为准：知识的内容最终来自感官经验，定义只是对过往经验总和的归纳与外化。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "review": {
+    "status": "approved",
+    "by": "simple-calcate",
+    "at": "2026-11-06",
+    "policy": "改动本文件须 code owner 审核"
+  },
+  "created_at": "2026-11-04",
+  "status": "canonical"
+}

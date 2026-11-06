@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "how.basic",
+  "concept_id": "knowledge",
+  "x": 3,
+  "y": 1,
+  "text": "人类如何才能获取知识？",
+  "note": "从途径与过程切入。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

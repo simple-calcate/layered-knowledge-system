@@ -1,0 +1,38 @@
+name: 知识卡片质检
+
+on:
+  pull_request:
+    paths:
+      - 'data/**'
+      - 'schema/**'
+      - 'pipeline/**'
+      - 'tools/**'
+      - '.github/**'
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 检查卡片格式、署名、要点覆盖、审核状态与乱码
+        run: python3 pipeline/validate.py
+      - name: 确认前端数据包能正常生成
+        run: python3 pipeline/export_app.py
+      - name: 确认训练分片能正常导出
+        run: python3 pipeline/export_training.py
+      - name: 提示改动了正确答案的 PR 必须经 code owner 审核
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD -- 'data/concepts/*/canonical/*')
+          if [ -n "$changed" ]; then
+            echo "::warning::本 PR 改动了正确答案文件，必须由 CODEOWNERS 指定的维护者审核后才能合并："
+            echo "$changed"
+          else
+            echo "未改动正确答案文件，只涉及普通卡片。"
+          fi

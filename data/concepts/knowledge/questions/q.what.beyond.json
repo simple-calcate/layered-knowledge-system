@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "what.beyond",
+  "concept_id": "knowledge",
+  "x": 1,
+  "y": 3,
+  "text": "除了人类，其他生物有知识吗？",
+  "note": "换主体：把'人类'这个前提拿掉。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

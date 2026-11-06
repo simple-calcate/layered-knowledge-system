@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "what.beyond.02",
+  "concept_id": "knowledge",
+  "question_id": "what.beyond",
+  "canonical_id": "c.what.beyond",
+  "style": "设问推进",
+  "register": "口语",
+  "content": "问'动物有没有知识'，其实得先问'你拿什么算知识'。定成'记得住、会改招、能传给同伴'这三条，再一条条对：传方位的蜜蜂占第一条，会开瓶盖的章鱼占前两条，会互相学工具的猩猩三条都沾边。这么一排就清楚了——不是非黑即白，而是各占几档、各到什么程度。标准先摆出来，争论才有落点。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·阿岚",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "与上一条意思相同，仅换表达"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

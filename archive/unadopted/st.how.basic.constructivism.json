@@ -1,0 +1,22 @@
+{
+  "schema": "stance/v2",
+  "id": "how.basic.constructivism",
+  "question_id": "how.basic",
+  "key": "constructivism",
+  "label": "建构主义",
+  "invariants": [
+    {
+      "id": "i1",
+      "claim": "新知识必须挂到已有认知结构上才被理解"
+    },
+    {
+      "id": "i2",
+      "claim": "获取不是搬运现成结论，而是主动重组"
+    }
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

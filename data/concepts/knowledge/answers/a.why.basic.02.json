@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v3",
+  "id": "why.basic.02",
+  "concept_id": "knowledge",
+  "question_id": "why.basic",
+  "canonical_id": "c.why.basic",
+  "style": "对比反证",
+  "register": "口语",
+  "content": "假设一个群体什么都不记：上一代踩过的坑，下一代原样再踩一遍；今天验证过能吃的果子，明天还要重新冒一次险。所有判断都退化成当场试探，试错的代价一次次重复支付。知识就是用来省下这笔重复开销的东西——它把别人或自己从前试出来的结果，变成这一次的行动依据。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·阿岚",
+    "link": ""
+  },
+  "source": {
+    "type": "original",
+    "note": "与上一条意思相同，仅换表达"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

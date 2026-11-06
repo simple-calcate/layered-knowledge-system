@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 构建产物（可随时重建：npm run sync:app / npm run export:training）
+web/dist/
+out/
+*.tsbuildinfo
+
+# 本机构建缓存
+.vite/
+
+# 编辑器 / 系统
+.DS_Store
+*.swp
+
+# 本地会话记忆（不进仓库）
+.workbuddy/

@@ -1,0 +1,24 @@
+{
+  "schema": "answer/v2",
+  "id": "how.basic.constructivism.01",
+  "concept_id": "knowledge",
+  "question_id": "how.basic",
+  "stance_id": "how.basic.constructivism",
+  "style": "平实叙述",
+  "register": "议论文",
+  "content": "新东西要能被已有认知结构接住，才算被理解。同一段讲解，有基础的人听懂了，没基础的人只记住一串词，差别不在信息量而在能不能挂上去。所以获取不是把现成结论搬进脑子，而是主动拆开、重排自己原有的框架，让新内容有位置可放。",
+  "covers": [
+    "i1",
+    "i2"
+  ],
+  "author": {
+    "name": "示例作者·K",
+    "link": ""
+  },
+  "source": {
+    "type": "book",
+    "note": "建构主义立场的通俗转述"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "why.boundary",
+  "concept_id": "knowledge",
+  "x": 2,
+  "y": 2,
+  "text": "如果一个社会完全不积累知识，会怎样？",
+  "note": "用反事实逼出必要性。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

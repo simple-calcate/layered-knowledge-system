@@ -1,0 +1,16 @@
+{
+  "schema": "concept/v3",
+  "id": "knowledge",
+  "term": "知识",
+  "aliases": [
+    "Knowledge",
+    "所知"
+  ],
+  "summary": "一个被反复追问的名词。每道题有一个经审核认定的正确答案，并允许多种意思相同、表达不同的说法。",
+  "author": {
+    "name": "simple-calcate",
+    "link": "https://github.com/simple-calcate"
+  },
+  "created_at": "2026-11-04",
+  "status": "published"
+}

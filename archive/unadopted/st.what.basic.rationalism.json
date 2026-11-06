@@ -1,0 +1,22 @@
+{
+  "schema": "stance/v2",
+  "id": "what.basic.rationalism",
+  "question_id": "what.basic",
+  "key": "rationalism",
+  "label": "理性主义",
+  "invariants": [
+    {
+      "id": "i1",
+      "claim": "感官经验只提供材料，提供不了必然性"
+    },
+    {
+      "id": "i2",
+      "claim": "知识的确定性来自理性自身的结构"
+    }
+  ],
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}

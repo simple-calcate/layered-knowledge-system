@@ -1,0 +1,14 @@
+{
+  "schema": "question/v3",
+  "id": "what.basic",
+  "concept_id": "knowledge",
+  "x": 1,
+  "y": 1,
+  "text": "知识是什么？",
+  "note": "最原点的追问，先界定这个概念本身。",
+  "author": {
+    "name": "simple-calcate",
+    "link": ""
+  },
+  "created_at": "2026-11-04"
+}
